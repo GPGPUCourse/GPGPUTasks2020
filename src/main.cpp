@@ -49,6 +49,8 @@ int main()
     OCL_SAFE_CALL(clGetPlatformIDs(platformsCount, platforms.data(), nullptr));
 
     // Проверка для пункта 1.1, в цикле делать ее было бы странно
+    // Прилетает ошибка CL_INVALID_VALUE так как отправденное в качестве параметра cl_platform_info значение не
+    // принадлежит к пулу поддерживаемых запросов.
     try {
         size_t pltNameSize = 0;
         OCL_SAFE_CALL(clGetPlatformInfo(platforms[0], 239, 0, nullptr, &pltNameSize));
@@ -93,6 +95,10 @@ int main()
         // TODO 2.1
         // Запросите число доступных устройств данной платформы (аналогично тому как это было сделано для запроса числа доступных платформ - см. секцию "OpenCL Runtime" -> "Query Devices")
         cl_uint devicesCount = 0;
+        OCL_SAFE_CALL(clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, 0, nullptr, &devicesCount));
+        std::cout << "    Number of devices: " << devicesCount << std::endl;
+        std::vector<cl_device_id> devices(platformsCount);
+        OCL_SAFE_CALL(clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, devicesCount, devices.data(), nullptr));
 
         for (int deviceIndex = 0; deviceIndex < devicesCount; ++deviceIndex) {
             // TODO 2.2
@@ -101,6 +107,47 @@ int main()
             // - Тип устройства (видеокарта/процессор/что-то странное)
             // - Размер памяти устройства в мегабайтах
             // - Еще пару или более свойств устройства, которые вам покажутся наиболее интересными
+            cl_device_id device = devices[deviceIndex];
+
+            size_t deviceNameSize = 0;
+            OCL_SAFE_CALL(clGetDeviceInfo(device, CL_DEVICE_NAME, 0, nullptr, &deviceNameSize));
+            std::vector<unsigned char> deviceName(deviceNameSize, 0);
+            OCL_SAFE_CALL(clGetDeviceInfo(device, CL_DEVICE_NAME, deviceNameSize, deviceName.data(), nullptr));
+            std::cout << "    Device #" << (deviceIndex + 1) << '/' << devicesCount
+                << "\n        Device name: " <<deviceName.data() << std::endl;
+
+            size_t deviceTypeSize = 0;
+            OCL_SAFE_CALL(clGetDeviceInfo(device, CL_DEVICE_TYPE, 0, nullptr, &deviceTypeSize));
+            cl_device_type deviceType;
+            OCL_SAFE_CALL(clGetDeviceInfo(device, CL_DEVICE_TYPE, deviceTypeSize, &deviceType, nullptr));
+            std::cout << "        Device type: ";
+            if (deviceType == CL_DEVICE_TYPE_CPU) {
+                std::cout << "CPU" << std::endl;
+            } else if (deviceType == CL_DEVICE_TYPE_GPU) {
+                std::cout << "GPU" << std::endl;
+            } else if (deviceType == CL_DEVICE_TYPE_ACCELERATOR) {
+                std::cout << "Accelerator" << std::endl;
+            } else {
+                std::cout << "Something else)" << std::endl;
+            }
+
+            size_t deviceMemSize = 0;
+            OCL_SAFE_CALL(clGetDeviceInfo(device, CL_DEVICE_GLOBAL_MEM_SIZE, 0, nullptr, &deviceMemSize));
+            cl_ulong deviceMem;
+            OCL_SAFE_CALL(clGetDeviceInfo(device, CL_DEVICE_GLOBAL_MEM_SIZE, deviceMemSize, &deviceMem, nullptr));
+            std::cout << "        Device memory: " << (deviceMem >> 20) << std::endl;
+
+            size_t deviceDriverVersionSize = 0;
+            OCL_SAFE_CALL(clGetDeviceInfo(device, CL_DRIVER_VERSION, 0, nullptr, &deviceDriverVersionSize));
+            std::vector<unsigned char> deviceDriverVersion(deviceDriverVersionSize, 0);
+            OCL_SAFE_CALL(clGetDeviceInfo(device, CL_DRIVER_VERSION, deviceDriverVersionSize, deviceDriverVersion.data(), nullptr));
+            std::cout << "        Device version: " << deviceDriverVersion.data() << std::endl;
+
+            size_t deviceDeviceVersionSize = 0;
+            OCL_SAFE_CALL(clGetDeviceInfo(device, CL_DEVICE_VERSION, 0, nullptr, &deviceDeviceVersionSize));
+            std::vector<unsigned char> deviceDeviceVersion(deviceDeviceVersionSize, 0);
+            OCL_SAFE_CALL(clGetDeviceInfo(device, CL_DEVICE_VERSION, deviceDeviceVersionSize, deviceDeviceVersion.data(), nullptr));
+            std::cout << "        Device version: " << deviceDeviceVersion.data() << std::endl;
         }
     }
 
