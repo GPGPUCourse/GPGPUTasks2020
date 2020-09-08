@@ -147,7 +147,7 @@ int main()
 
             std::vector<unsigned char> deviceDriverVersion(MAX_STRING, 0);
             safeCallDeviceInfo(device, CL_DRIVER_VERSION, deviceDriverVersion.data());
-            std::cout << "\t\tDevice version: " << deviceDriverVersion.data() << std::endl;
+            std::cout << "\t\tDevice driver version: " << deviceDriverVersion.data() << std::endl;
 
             std::vector<unsigned char> deviceVersion(MAX_STRING, 0);
             safeCallDeviceInfo(device, CL_DEVICE_VERSION, deviceVersion.data());
