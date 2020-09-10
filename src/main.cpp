@@ -5,6 +5,7 @@
 #include <sstream>
 #include <iostream>
 #include <stdexcept>
+#include <tuple>
 
 
 template <typename T>
@@ -29,65 +30,68 @@ void reportError(cl_int err, const std::string &filename, int line)
 
 #define OCL_SAFE_CALL(expr) reportError(expr, __FILE__, __LINE__)
 
+template<class T = char, class P = size_t, class... Ps, class... Rs>
+std::pair<std::vector<T>, P> extractFromFunc(cl_int (*clFunc)(Ps...), Rs... args)
+{
+    P paramName = 0;
+    OCL_SAFE_CALL(clFunc(args..., 0, nullptr, &paramName));
+    std::vector<T> returnVec(paramName, (T) 0);
+    OCL_SAFE_CALL(clFunc(args..., paramName, returnVec.data(), nullptr));
+    return std::make_pair(returnVec, paramName);
+}
+
+std::string getDeviceTypeName(cl_device_type type) {
+    switch (type) {
+        case CL_DEVICE_TYPE_DEFAULT:
+            return "CL_DEVICE_TYPE_DEFAULT";
+        case CL_DEVICE_TYPE_CPU:
+            return "CL_DEVICE_TYPE_CPU";
+        case CL_DEVICE_TYPE_GPU:
+            return "CL_DEVICE_TYPE_GPU";
+        case CL_DEVICE_TYPE_ACCELERATOR:
+            return "CL_DEVICE_TYPE_ACCELERATOR";
+        default:
+            return "CL_DEVICE_TYPE_ALL";
+    }
+}
 
 int main()
 {
-    // Пытаемся слинковаться с символами OpenCL API в runtime (через библиотеку libs/clew)
     if (!ocl_init())
         throw std::runtime_error("Can't init OpenCL driver!");
 
-    // Откройте 
-    // https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/
-    // Нажмите слева: "OpenCL Runtime" -> "Query Platform Info" -> "clGetPlatformIDs"
-    // Прочитайте документацию clGetPlatformIDs и убедитесь что этот способ узнать сколько есть платформ соответствует документации:
     cl_uint platformsCount = 0;
-    OCL_SAFE_CALL(clGetPlatformIDs(0, nullptr, &platformsCount));
+    std::vector<cl_platform_id> platforms;
+    std::tie(platforms, platformsCount) = extractFromFunc<cl_platform_id, cl_uint>(&clGetPlatformIDs);
     std::cout << "Number of OpenCL platforms: " << platformsCount << std::endl;
-
-    // Тот же метод используется для того чтобы получить идентификаторы всех платформ - сверьтесь с документацией, что это сделано верно:
-    std::vector<cl_platform_id> platforms(platformsCount);
-    OCL_SAFE_CALL(clGetPlatformIDs(platformsCount, platforms.data(), nullptr));
 
     for (int platformIndex = 0; platformIndex < platformsCount; ++platformIndex) {
         std::cout << "Platform #" << (platformIndex + 1) << "/" << platformsCount << std::endl;
         cl_platform_id platform = platforms[platformIndex];
 
-        // Откройте документацию по "OpenCL Runtime" -> "Query Platform Info" -> "clGetPlatformInfo"
-        // Не забывайте проверять коды ошибок с помощью макроса OCL_SAFE_CALL
-        size_t platformNameSize = 0;
-        OCL_SAFE_CALL(clGetPlatformInfo(platform, CL_PLATFORM_NAME, 0, nullptr, &platformNameSize));
-        // TODO 1.1
-        // Попробуйте вместо CL_PLATFORM_NAME передать какое-нибудь случайное число - например 239
-        // Т.к. это некорректный идентификатор параметра платформы - то метод вернет код ошибки
-        // Макрос OCL_SAFE_CALL заметит это, и кинет ошибку с кодом
-        // Откройте таблицу с кодами ошибок:
-        // libs/clew/CL/cl.h:103
-        // P.S. Быстрый переход к файлу в CLion: Ctrl+Shift+N -> cl.h (или даже с номером строки: cl.h:103) -> Enter
-        // Найдите там нужный код ошибки и ее название
-        // Затем откройте документацию по clGetPlatformInfo и в секции Errors найдите ошибку, с которой столкнулись
-        // в документации подробно объясняется, какой ситуации соответствует данная ошибка, и это позволит проверив код понять чем же вызвана данная ошибка (не корректным аргументом param_name)
-        // Обратите внимание что в этом же libs/clew/CL/cl.h файле указаны всевоможные defines такие как CL_DEVICE_TYPE_GPU и т.п.
+        std::string platformName   = extractFromFunc(&clGetPlatformInfo, platform, CL_PLATFORM_NAME).first.data();
+        std::string platformVendor = extractFromFunc(&clGetPlatformInfo, platform, CL_PLATFORM_VENDOR).first.data();
+        std::cout << "    Platform name: "   << platformName.data()   << std::endl;
+        std::cout << "    Platform vendor: " << platformVendor.data() << std::endl;
 
-        // TODO 1.2
-        // Аналогично тому как был запрошен список идентификаторов всех платформ - так и с названием платформы, теперь, когда известна длина названия - его можно запросить:
-        std::vector<unsigned char> platformName(platformNameSize, 0);
-        // clGetPlatformInfo(...);
-        std::cout << "    Platform name: " << platformName.data() << std::endl;
-
-        // TODO 1.3
-        // Запросите и напечатайте так же в консоль вендора данной платформы
-
-        // TODO 2.1
-        // Запросите число доступных устройств данной платформы (аналогично тому как это было сделано для запроса числа доступных платформ - см. секцию "OpenCL Runtime" -> "Query Devices")
         cl_uint devicesCount = 0;
+        std::vector<cl_device_id> devices;
+        std::tie(devices, devicesCount) = extractFromFunc<cl_device_id, cl_uint>(&clGetDeviceIDs, platform, CL_DEVICE_TYPE_ALL);
 
         for (int deviceIndex = 0; deviceIndex < devicesCount; ++deviceIndex) {
-            // TODO 2.2
-            // Запросите и напечатайте в консоль:
-            // - Название устройства
-            // - Тип устройства (видеокарта/процессор/что-то странное)
-            // - Размер памяти устройства в мегабайтах
-            // - Еще пару или более свойств устройства, которые вам покажутся наиболее интересными
+            std::cout << "    Device #" << (deviceIndex + 1) << "/" << devicesCount << std::endl;
+
+            std::string    deviceName      = extractFromFunc                (&clGetDeviceInfo, devices[deviceIndex], CL_DEVICE_NAME).first.data();
+            cl_device_type deviceType      = extractFromFunc<cl_device_type>(&clGetDeviceInfo, devices[deviceIndex], CL_DEVICE_TYPE).first[0];
+            cl_ulong       deviceMemSize   = extractFromFunc<cl_ulong>      (&clGetDeviceInfo, devices[deviceIndex], CL_DEVICE_GLOBAL_MEM_SIZE).first[0];
+            cl_bool        deviceAvailable = extractFromFunc<cl_bool>       (&clGetDeviceInfo, devices[deviceIndex], CL_DEVICE_AVAILABLE).first[0];
+            cl_uint        deviceMaxClocks = extractFromFunc<cl_uint>       (&clGetDeviceInfo, devices[deviceIndex], CL_DEVICE_MAX_CLOCK_FREQUENCY).first[0];
+
+            std::cout << "        Device name: "           << deviceName.data()                      << std::endl;
+            std::cout << "        Device type: "           << getDeviceTypeName(deviceType)          << std::endl;
+            std::cout << "        Device mem size: "       << deviceMemSize / (1024 * 1024) << " MB" << std::endl;
+            std::cout << "        Device is available: "   << (deviceAvailable ? "true" : "false")   << std::endl;
+            std::cout << "        Device max clock freq: " << deviceMaxClocks << " Hz"               << std::endl;
         }
     }
 
