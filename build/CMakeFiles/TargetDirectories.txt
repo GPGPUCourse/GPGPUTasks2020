@@ -1,0 +1,8 @@
+/Users/tihonvorobev/Desktop/GPGPUTasks2020/build/CMakeFiles/rebuild_cache.dir
+/Users/tihonvorobev/Desktop/GPGPUTasks2020/build/CMakeFiles/edit_cache.dir
+/Users/tihonvorobev/Desktop/GPGPUTasks2020/build/CMakeFiles/enumDevices.dir
+/Users/tihonvorobev/Desktop/GPGPUTasks2020/build/libs/CMakeFiles/rebuild_cache.dir
+/Users/tihonvorobev/Desktop/GPGPUTasks2020/build/libs/CMakeFiles/edit_cache.dir
+/Users/tihonvorobev/Desktop/GPGPUTasks2020/build/libs/clew/CMakeFiles/rebuild_cache.dir
+/Users/tihonvorobev/Desktop/GPGPUTasks2020/build/libs/clew/CMakeFiles/edit_cache.dir
+/Users/tihonvorobev/Desktop/GPGPUTasks2020/build/libs/clew/CMakeFiles/libclew.dir
