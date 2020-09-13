@@ -106,6 +106,13 @@ int main()
             auto deviceMemory = cl_entity_info<cl_ulong>(device, CL_DEVICE_GLOBAL_MEM_SIZE, clGetDeviceInfo);
 
             std::cout << "\t\tDevice memory size: " << round(deviceMemory / (1024.0 * 1024.0)) << " MB" << std::endl;
+
+            auto maxFrequency = cl_entity_info<cl_uint>(device, CL_DEVICE_MAX_CLOCK_FREQUENCY, clGetDeviceInfo);
+            std::cout << "\t\tDevice max clock frequency: " << round(maxFrequency ) << " MHz" << std::endl;
+
+            auto maxComputeUnits = cl_entity_info<cl_uint>(device, CL_DEVICE_MAX_COMPUTE_UNITS, clGetDeviceInfo);
+            std::cout << "\t\tDevice max compute units: " << round(maxComputeUnits) << std::endl;
+
             std::cout << "—————————————" << std::endl;
         }
     }
