@@ -2,6 +2,7 @@
 
 [Остальные задания](https://github.com/GPGPUCourse/GPGPUTasks2020/).
 
+
 # Задание 0. Вводное.
 
 [![Build Status](https://travis-ci.com/pavlov200912/GPGPUTasks2020.svg?branch=task00)](https://travis-ci.com/pavlov200912/GPGPUTasks2020)
