@@ -5,6 +5,7 @@
 #include <sstream>
 #include <iostream>
 #include <stdexcept>
+#include <map>
 
 
 template <typename T>
@@ -102,6 +103,13 @@ int main()
         std::vector<cl_device_id> devices(devicesCount);
         OCL_SAFE_CALL(clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, devicesCount, devices.data(), nullptr));
 
+        std::map<cl_device_type, std::string> deviceMap;
+        deviceMap[CL_DEVICE_TYPE_CPU] = "CPU";
+        deviceMap[CL_DEVICE_TYPE_GPU] = "GPU";
+        deviceMap[CL_DEVICE_TYPE_ACCELERATOR] = "ACCELERATOR";
+        deviceMap[CL_DEVICE_TYPE_DEFAULT] = "DEFAULT";
+        deviceMap[CL_DEVICE_TYPE_ALL] = "ALL";
+
         for (int deviceIndex = 0; deviceIndex < devicesCount; ++deviceIndex) {
             // TODO 2.2
             // Запросите и напечатайте в консоль:
@@ -111,9 +119,18 @@ int main()
             // - Еще пару или более свойств устройства, которые вам покажутся наиболее интересными
 
             std::cout << "      Device name: " << getDeviceInfo(devices[deviceIndex], CL_DEVICE_NAME).data() << std::endl;
-            std::cout << "      Device type: " << getDeviceInfo(devices[deviceIndex], CL_DEVICE_TYPE).data() << std::endl;
-            std::cout << "      Device global mem size: " << getDeviceInfo(devices[deviceIndex], CL_DEVICE_GLOBAL_MEM_SIZE).data() << std::endl;
-            std::cout << "      Device local mem size: " << getDeviceInfo(devices[deviceIndex], CL_DEVICE_LOCAL_MEM_SIZE).data() << std::endl;
+
+            cl_device_type clDeviceType = 0;
+            OCL_SAFE_CALL(clGetDeviceInfo(devices[deviceIndex], CL_DEVICE_TYPE, sizeof(clDeviceType), &clDeviceType,
+                                          nullptr));
+
+
+            std::cout << "      Device type: " << deviceMap[clDeviceType] << std::endl;
+            cl_ulong memory = 0;
+            OCL_SAFE_CALL(clGetDeviceInfo(devices[deviceIndex], CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(memory), &memory,
+                                          nullptr));
+
+            std::cout << "      Device global mem size: " << memory /1024 /1024 << "MB" << std::endl;
             std::cout << "      Device extensions: " << getDeviceInfo(devices[deviceIndex], CL_DEVICE_EXTENSIONS).data() << std::endl;
             std::cout << "      Device version: " << getDeviceInfo(devices[deviceIndex], CL_DEVICE_VERSION).data() << std::endl;
         }
