@@ -38,6 +38,7 @@ cl_device_id get_device() {
     OCL_SAFE_CALL(clGetPlatformIDs(0, nullptr, &platformsCount));
     std::vector<cl_platform_id> platforms(platformsCount);
     OCL_SAFE_CALL(clGetPlatformIDs(platformsCount, platforms.data(), nullptr));
+    cl_device_id CPU_device = 0;
 
     for (int platformIndex = 0; platformIndex < platformsCount; ++platformIndex) {
         cl_platform_id platform = platforms[platformIndex];
@@ -52,11 +53,17 @@ cl_device_id get_device() {
             if (deviceType == CL_DEVICE_TYPE_GPU) {
                 return devices[deviceIndex];
             }
+            if (deviceType == CL_DEVICE_TYPE_CPU) {
+                CPU_device = devices[deviceIndex];
+            }
         }
 
     }
+    if (CPU_device == 0) {
+        throw std::runtime_error("No CPU or GPU device available!");
+    }
 
-    throw std::runtime_error("No GPU device available!");
+    return CPU_device;
 }
 
 
