@@ -1,0 +1,10 @@
+"""
+Number of OpenCL platforms: 1
+Platform #1/1
+    Platform name: Intel(R) CPU Runtime for OpenCL(TM) Applications
+    Platform vendor: Intel(R) Corporation
+      Device #1/1
+          Device name: Intel(R) Core(TM) i5-8250U CPU @ 1.60GHz
+          Device type: CL_DEVICE_TYPE_CPU
+          Device GLOBAL_MEM_CACHE_TYPE: CL_READ_WRITE_CACHE
+"""
