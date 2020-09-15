@@ -48,14 +48,15 @@ cl_device_id getDeviceId() {
                           static_cast<cl_device_type>(CL_DEVICE_TYPE_ALL)}) {
             cl_uint devicesCount = 0;
             OCL_SAFE_CALL(clGetDeviceIDs(platform, type, 0, nullptr, &devicesCount));
+            if (devicesCount == 0) {
+                continue;
+            }
             std::vector<cl_device_id> devices(devicesCount);
             OCL_SAFE_CALL(clGetDeviceIDs(platform, type, devicesCount, devices.data(), nullptr));
-            if (!devices.empty()) {
-                if (type & CL_DEVICE_TYPE_GPU) {
-                    std::cout << "Found GPU!\n";
-                }
-                return devices[0];
+            if (type & CL_DEVICE_TYPE_GPU) {
+                std::cout << "Found GPU!\n";
             }
+            return devices[0];
         }
     }
 
