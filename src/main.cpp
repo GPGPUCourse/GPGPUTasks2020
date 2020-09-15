@@ -43,21 +43,21 @@ cl_device_id getDeviceId() {
     for (size_t platformIndex = 0; platformIndex < platformsCount; ++platformIndex) {
         cl_platform_id platform = platforms[platformIndex];
 
-        // Find GPU first
-        for (auto type : {static_cast<cl_device_type>(CL_DEVICE_TYPE_GPU),
-                          static_cast<cl_device_type>(CL_DEVICE_TYPE_ALL)}) {
-            cl_uint devicesCount = 0;
-            OCL_SAFE_CALL(clGetDeviceIDs(platform, type, 0, nullptr, &devicesCount));
-            if (devicesCount == 0) {
-                continue;
-            }
-            std::vector<cl_device_id> devices(devicesCount);
-            OCL_SAFE_CALL(clGetDeviceIDs(platform, type, devicesCount, devices.data(), nullptr));
-            if (type & CL_DEVICE_TYPE_GPU) {
+        cl_uint devicesCount = 0;
+        OCL_SAFE_CALL(clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, 0, nullptr, &devicesCount));
+        std::vector<cl_device_id> devices(devicesCount);
+        OCL_SAFE_CALL(clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, devicesCount, devices.data(), nullptr));
+
+        for (int index = 0; index < devicesCount; ++index) {
+            cl_device_id id = devices[index];
+            cl_device_type deviceType = 0;
+            OCL_SAFE_CALL(clGetDeviceInfo(id, CL_DEVICE_TYPE, sizeof(cl_device_type), &deviceType, nullptr));
+            if (deviceType & CL_DEVICE_TYPE_GPU) {
                 std::cout << "Found GPU!\n";
+                return id;
             }
-            return devices[0];
         }
+        return devices[0];
     }
 
     throw std::runtime_error("Failed to find OpenCL device");
