@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="BranchesTreeState">
+    <expand>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="LOCAL_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="GROUP_NODE:origin" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+    </expand>
+    <select />
+  </component>
+  <component name="CMakeRunConfigurationManager" shouldGenerate="true" shouldDeleteObsolete="true">
+    <generated>
+      <config projectName="enumDevices" targetName="enumDevices" />
+      <config projectName="enumDevices" targetName="libclew" />
+    </generated>
+  </component>
+  <component name="CMakeSettings">
+    <configurations>
+      <configuration PROFILE_NAME="Debug" CONFIG_NAME="Debug" />
+    </configurations>
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="d9d2da6b-1a5d-470c-8f47-354807a44043" name="Default Changelist" comment="add config files" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="ExecutionTargetManager" SELECTED_TARGET="CMakeBuildProfile:Debug" />
+  <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="master" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectId" id="1hXYAZNom317VKxbmGfyC4KB8Qh" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="cf.first.check.clang-format" value="false" />
+  </component>
+  <component name="RunManager" selected="CMake Application.enumDevices">
+    <configuration name="enumDevices" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="enumDevices" TARGET_NAME="enumDevices" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="enumDevices" RUN_TARGET_NAME="enumDevices">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="libclew" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="enumDevices" TARGET_NAME="libclew" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <list>
+      <item itemvalue="CMake Application.enumDevices" />
+      <item itemvalue="CMake Application.libclew" />
+    </list>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="d9d2da6b-1a5d-470c-8f47-354807a44043" name="Default Changelist" comment="" />
+      <created>1600158760233</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1600158760233</updated>
+      <workItem from="1600158761254" duration="105000" />
+      <workItem from="1600158875701" duration="32000" />
+    </task>
+    <task id="LOCAL-00001" summary="add config files">
+      <created>1600158834674</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1600158834674</updated>
+    </task>
+    <task id="LOCAL-00002" summary="add config files">
+      <created>1600158845639</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1600158845639</updated>
+    </task>
+    <task id="LOCAL-00003" summary="add config files">
+      <created>1600158894782</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1600158894782</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="oldMeFiltersMigrated" value="true" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="add config files" />
+    <option name="LAST_COMMIT_MESSAGE" value="add config files" />
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="100" y="123" width="2808" height="1390" key="DiffContextDialog" timestamp="1600158865570">
+      <screen x="0" y="23" width="3008" height="1590" />
+    </state>
+    <state x="100" y="123" width="2808" height="1390" key="DiffContextDialog/0.23.3008.1590@0.23.3008.1590" timestamp="1600158865570" />
+    <state width="2966" height="461" key="GridCell.Tab.0.bottom" timestamp="1600158907723">
+      <screen x="0" y="23" width="3008" height="1590" />
+    </state>
+    <state width="2966" height="461" key="GridCell.Tab.0.bottom/0.23.3008.1590@0.23.3008.1590" timestamp="1600158907723" />
+    <state width="2966" height="461" key="GridCell.Tab.0.center" timestamp="1600158907722">
+      <screen x="0" y="23" width="3008" height="1590" />
+    </state>
+    <state width="2966" height="461" key="GridCell.Tab.0.center/0.23.3008.1590@0.23.3008.1590" timestamp="1600158907722" />
+    <state width="2966" height="461" key="GridCell.Tab.0.left" timestamp="1600158907722">
+      <screen x="0" y="23" width="3008" height="1590" />
+    </state>
+    <state width="2966" height="461" key="GridCell.Tab.0.left/0.23.3008.1590@0.23.3008.1590" timestamp="1600158907722" />
+    <state width="2966" height="461" key="GridCell.Tab.0.right" timestamp="1600158907723">
+      <screen x="0" y="23" width="3008" height="1590" />
+    </state>
+    <state width="2966" height="461" key="GridCell.Tab.0.right/0.23.3008.1590@0.23.3008.1590" timestamp="1600158907723" />
+  </component>
+</project>
