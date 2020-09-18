@@ -3,6 +3,7 @@
 #include <libutils/timer.h>
 #include <libutils/fast_random.h>
 
+#include <utility>
 #include <vector>
 #include <sstream>
 #include <iostream>
@@ -32,6 +33,27 @@ void reportError(cl_int err, const std::string &filename, int line)
 }
 
 #define OCL_SAFE_CALL(expr) reportError(expr, __FILE__, __LINE__)
+
+template<class T>
+class CLHolder {
+public:
+    using ReleaseFunc = std::function<cl_int(T)>;
+
+    CLHolder(T t, ReleaseFunc f) : t{t}, f{std::move(f)} {}
+    ~CLHolder() {
+        if (t != nullptr) {
+            cl_int err = f(t);
+            if (err != CL_SUCCESS) {
+                std::cout << "An error " << err << " occurred while releasing resource";
+            }
+        }
+    }
+
+    T get() { return t; }
+private:
+    T t;
+    ReleaseFunc f;
+};
 
 cl_device_id getDeviceId() {
     cl_uint platformsCount = 0;
@@ -79,7 +101,8 @@ int main()
     // код по переданному аргументом errcode_ret указателю)
     // И хорошо бы сразу добавить в конце clReleaseContext (да, не очень RAII, но это лишь пример)
     cl_int error = 0;
-    cl_context context = clCreateContext(nullptr, /*num_devices*/1, &deviceId, nullptr, nullptr, &error);
+    CLHolder<cl_context> context{clCreateContext(nullptr, /*num_devices*/1, &deviceId, nullptr, nullptr, &error),
+                                 clReleaseContext};
     OCL_SAFE_CALL(error);
 
     // TODO 3 Создайте очередь выполняемых команд в рамках выбранного контекста и устройства
@@ -87,7 +110,8 @@ int main()
     // Убедитесь что в соответствии с документацией вы создали in-order очередь задач
     // И хорошо бы сразу добавить в конце clReleaseQueue (не забывайте освобождать ресурсы)
     cl_command_queue_properties cmdQProps = 0; // in-order by default;
-    cl_command_queue commandQueue = clCreateCommandQueue(context, deviceId, cmdQProps, &error);
+    CLHolder<cl_command_queue> commandQueue{clCreateCommandQueue(context.get(), deviceId, cmdQProps, &error),
+                                            clReleaseCommandQueue};
     OCL_SAFE_CALL(error);
 
     unsigned int n = 100*1000*1000;
@@ -108,11 +132,14 @@ int main()
     // Данные в as и bs можно прогрузить этим же методом скопировав данные из host_ptr=as.data() (и не забыв про битовый флаг на это указывающий)
     // или же через метод Buffer Objects -> clEnqueueWriteBuffer
     // И хорошо бы сразу добавить в конце clReleaseMemObject (аналогично все дальнейшие ресурсы вроде OpenCL под-программы, кернела и т.п. тоже нужно освобождать)
-    cl_mem asMem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, n * sizeof(float), as.data(), &error);
+    CLHolder<cl_mem> asMem{clCreateBuffer(context.get(), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, n * sizeof(float), as.data(), &error),
+                           clReleaseMemObject};
     OCL_SAFE_CALL(error);
-    cl_mem bsMem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, n * sizeof(float), bs.data(), &error);
+    CLHolder<cl_mem> bsMem{clCreateBuffer(context.get(), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, n * sizeof(float), bs.data(), &error),
+                           clReleaseMemObject};
     OCL_SAFE_CALL(error);
-    cl_mem csMem = clCreateBuffer(context, CL_MEM_WRITE_ONLY, n * sizeof(float), nullptr, &error);
+    CLHolder<cl_mem> csMem{clCreateBuffer(context.get(), CL_MEM_WRITE_ONLY, n * sizeof(float), nullptr, &error),
+                           clReleaseMemObject};
     OCL_SAFE_CALL(error);
 
     // TODO 6 Выполните TODO 5 (реализуйте кернел в src/cl/aplusb.cl)
@@ -133,21 +160,22 @@ int main()
     // у string есть метод c_str(), но обратите внимание что передать вам нужно указатель на указатель
     const char * sources = kernel_sources.c_str();
     const size_t sources_size = kernel_sources.size();
-    cl_program program = clCreateProgramWithSource(context, 1, &sources, &sources_size, &error);
+    CLHolder<cl_program> program{clCreateProgramWithSource(context.get(), 1, &sources, &sources_size, &error),
+                                 clReleaseProgram};
     OCL_SAFE_CALL(error);
 
     // TODO 8 Теперь скомпилируйте программу и напечатайте в консоль лог компиляции
     // см. clBuildProgram
-    error = clBuildProgram(program, /*num_devices*/ 1, &deviceId, "", nullptr, nullptr);
+    error = clBuildProgram(program.get(), /*num_devices*/ 1, &deviceId, "", nullptr, nullptr);
 
     // А так же напечатайте лог компиляции (он будет очень полезен, если в кернеле есть синтаксические ошибки - т.е. когда clBuildProgram вернет CL_BUILD_PROGRAM_FAILURE)
     // Обратите внимание что при компиляции на процессоре через Intel OpenCL драйвер - в логе указывается какой ширины векторизацию получилось выполнить для кернела
     // см. clGetProgramBuildInfo
     size_t log_size = 0;
-    OCL_SAFE_CALL(clGetProgramBuildInfo(program, deviceId, CL_PROGRAM_BUILD_LOG, 0, nullptr, &log_size));
+    OCL_SAFE_CALL(clGetProgramBuildInfo(program.get(), deviceId, CL_PROGRAM_BUILD_LOG, 0, nullptr, &log_size));
     if (log_size > 1) {
         std::vector<char> log(log_size, 0);
-        clGetProgramBuildInfo(program, deviceId, CL_PROGRAM_BUILD_LOG, log_size, log.data(), nullptr);
+        clGetProgramBuildInfo(program.get(), deviceId, CL_PROGRAM_BUILD_LOG, log_size, log.data(), nullptr);
         std::cout << "Log:" << std::endl;
         std::cout << log.data() << std::endl;
     }
@@ -156,16 +184,16 @@ int main()
 
     // TODO 9 Создайте OpenCL-kernel в созданной подпрограмме (в одной подпрограмме может быть несколько кернелов, но в данном случае кернел один)
     // см. подходящую функцию в Runtime APIs -> Program Objects -> Kernel Objects
-    cl_kernel kernel = clCreateKernel(program, "aplusb", &error);
+    CLHolder<cl_kernel> kernel {clCreateKernel(program.get(), "aplusb", &error), clReleaseKernel};
     OCL_SAFE_CALL(error);
 
     // TODO 10 Выставите все аргументы в кернеле через clSetKernelArg (as_gpu, bs_gpu, cs_gpu и число значений, убедитесь что тип количества элементов такой же в кернеле)
     {
         unsigned int i = 0;
-        OCL_SAFE_CALL(clSetKernelArg(kernel, i++, sizeof(cl_mem), &asMem));
-        OCL_SAFE_CALL(clSetKernelArg(kernel, i++, sizeof(cl_mem), &bsMem));
-        OCL_SAFE_CALL(clSetKernelArg(kernel, i++, sizeof(cl_mem), &csMem));
-        OCL_SAFE_CALL(clSetKernelArg(kernel, i++, sizeof(unsigned int), &n));
+        OCL_SAFE_CALL(clSetKernelArg(kernel.get(), i++, sizeof(cl_mem), &asMem));
+        OCL_SAFE_CALL(clSetKernelArg(kernel.get(), i++, sizeof(cl_mem), &bsMem));
+        OCL_SAFE_CALL(clSetKernelArg(kernel.get(), i++, sizeof(cl_mem), &csMem));
+        OCL_SAFE_CALL(clSetKernelArg(kernel.get(), i++, sizeof(unsigned int), &n));
     }
 
     // TODO 11 Выше увеличьте n с 1000*1000 до 100*1000*1000 (чтобы дальнейшие замеры были ближе к реальности)
@@ -183,10 +211,11 @@ int main()
         timer t; // Это вспомогательный секундомер, он замеряет время своего создания и позволяет усреднять время нескольких замеров
         for (unsigned int i = 0; i < 20; ++i) {
             cl_event event;
-            OCL_SAFE_CALL(clEnqueueNDRangeKernel(commandQueue, kernel, /*work_dim*/ 1,
+            OCL_SAFE_CALL(clEnqueueNDRangeKernel(commandQueue.get(), kernel.get(), /*work_dim*/ 1,
                                    /*global_work_offset*/ nullptr, &global_work_size, &workGroupSize,
                                    0, nullptr, &event));
             OCL_SAFE_CALL(clWaitForEvents(1, &event));
+            clReleaseEvent(event); // better than dealing with "can't take & of r-value"
             t.nextLap(); // При вызове nextLap секундомер запоминает текущий замер (текущий круг) и начинает замерять время следующего круга
         }
         // Среднее время круга (вычисления кернела) на самом деле считаются не по всем замерам, а лишь с 20%-перцентайля по 80%-перцентайль (как и стандартное отклониение)
@@ -215,7 +244,7 @@ int main()
     {
         timer t;
         for (unsigned int i = 0; i < 20; ++i) {
-            clEnqueueReadBuffer(commandQueue, csMem, CL_TRUE, 0, n * sizeof(float), cs.data(), 0, nullptr, nullptr);
+            clEnqueueReadBuffer(commandQueue.get(), csMem.get(), CL_TRUE, 0, n * sizeof(float), cs.data(), 0, nullptr, nullptr);
             t.nextLap();
         }
         std::cout << "Result data transfer time: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
@@ -228,14 +257,6 @@ int main()
             throw std::runtime_error("CPU and GPU results differ!");
         }
     }
-
-    clReleaseKernel(kernel);
-    clReleaseProgram(program);
-    clReleaseMemObject(csMem);
-    clReleaseMemObject(bsMem);
-    clReleaseMemObject(asMem);
-    clReleaseCommandQueue(commandQueue);
-    clReleaseContext(context);
 
     return 0;
 }
