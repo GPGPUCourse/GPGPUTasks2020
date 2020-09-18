@@ -3,7 +3,7 @@
 #include <libutils/timer.h>
 #include <libutils/fast_random.h>
 
-#include <utility>
+#include <functional>
 #include <vector>
 #include <sstream>
 #include <iostream>
