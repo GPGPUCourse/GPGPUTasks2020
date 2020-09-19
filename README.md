@@ -2,4 +2,4 @@
 
 Задания:
 
- - [Задание 0](https://github.com/GPGPUCourse/GPGPUTasks2020/tree/task00): Вводное.
+ - [Задание 0](https://github.com/GPGPUCourse/GPGPUTasks2020/tree/task00): Пробное.
