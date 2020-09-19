@@ -5,7 +5,6 @@
 
 #include <functional>
 #include <iostream>
-#include <optional>
 #include <stdexcept>
 #include <sstream>
 #include <string>
@@ -14,13 +13,13 @@
 namespace my_utils {
 
     inline void oclInitIfNeeded() {
-        static std::optional<bool> isInitialised;
+        static int isInitialised = -1;
         
         // Пытаемся слинковаться с символами OpenCL API в runtime (через библиотеку libs/clew)
-        if (!isInitialised)
+        if (isInitialised == -1)
             isInitialised = ocl_init();
         
-        if (!isInitialised.value())
+        if (!isInitialised)
             throw std::runtime_error("Can't init OpenCL driver!");
     }
 
@@ -102,7 +101,7 @@ namespace my_utils {
     }
 
     template<cl_device_type type>
-    inline std::optional<cl::Device> getAnyDeviceByType() {
+    inline cl::Device getAnyDeviceByType() {
         oclInitIfNeeded();
 
         std::vector<cl::Platform> platforms;
@@ -115,23 +114,18 @@ namespace my_utils {
                 return device;
         }
 
-        return {};
+        OCL_SAFE_CALL(CL_DEVICE_NOT_FOUND);
+        throw "hide warning";
     }
 
     inline cl::Device getSuitableDevice() {
         oclInitIfNeeded();
 
-        const auto firstGPU = getAnyDeviceByType<CL_DEVICE_TYPE_GPU>();
-        if (firstGPU)
-            return firstGPU.value();
+        try {
+            return getAnyDeviceByType<CL_DEVICE_TYPE_GPU>();
+        } catch (std::runtime_error) {}
 
-        const auto firstCPU = getAnyDeviceByType<CL_DEVICE_TYPE_CPU>();
-        if (firstCPU)
-            return firstCPU.value();
-
-        // that's some strange PC
-        OCL_SAFE_CALL(CL_DEVICE_NOT_FOUND);
-        throw "to disable warning"; // as we already always throw on the previous line 
+        return getAnyDeviceByType<CL_DEVICE_TYPE_CPU>();
     }
 
 }

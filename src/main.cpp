@@ -36,7 +36,7 @@ int main()
     );
     OCL_SAFE_CALL(errorCode);
 
-    const size_t n = 100'000'000; // 1e9 is too much for my iGPU and I have no idea why it doesn't decide to use some RAM instead :(
+    const size_t n = 100*1000*1000; // 1e9 is too much for my iGPU and I have no idea why it doesn't decide to use some RAM instead :(
     const size_t workGroupSize = 128;
     const size_t globalWorkSize = (n + workGroupSize - 1) / workGroupSize * workGroupSize;
     // Создаем два массива псевдослучайных данных для сложения и массив для будущего хранения результата
