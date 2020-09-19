@@ -4,7 +4,7 @@
 
 # Задание 1. A+B.
 
-[![Build Status](https://travis-ci.com/GPGPUCourse/GPGPUTasks2020.svg?branch=task01)](https://travis-ci.com/GPGPUCourse/GPGPUTasks2020)
+[![Build Status](https://travis-ci.com/vsalavatov/GPGPUTasks2020.svg?branch=task01)](https://travis-ci.com/vsalavatov/GPGPUTasks2020)
 
 Задание
 =======
