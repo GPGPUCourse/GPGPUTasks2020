@@ -100,32 +100,22 @@ namespace my_utils {
         }
     }
 
-    template<cl_device_type type>
-    inline cl::Device getAnyDeviceByType() {
+    inline cl::Device getSuitableDevice() {
         oclInitIfNeeded();
 
         std::vector<cl::Platform> platforms;
         OCL_SAFE_CALL(cl::Platform::get(&platforms));
 
-        for (const auto &platform : platforms) {
-            std::vector<cl::Device> devices;
-            platform.getDevices(type, &devices); // error code does not matter here
-            for (const auto &device : devices)
-                return device;
-        }
+        for (const auto &type : { CL_DEVICE_TYPE_GPU, CL_DEVICE_TYPE_CPU })
+            for (const auto &platform : platforms) {
+                std::vector<cl::Device> devices;
+                platform.getDevices(type, &devices); // error code does not matter here
+                for (const auto &device : devices)
+                    return device;
+            }
 
         OCL_SAFE_CALL(CL_DEVICE_NOT_FOUND);
-        throw "hide warning";
-    }
-
-    inline cl::Device getSuitableDevice() {
-        oclInitIfNeeded();
-
-        try {
-            return getAnyDeviceByType<CL_DEVICE_TYPE_GPU>();
-        } catch (std::runtime_error) {}
-
-        return getAnyDeviceByType<CL_DEVICE_TYPE_CPU>();
+        throw "hide warning, exception thrown in the previous line";
     }
 
 }
