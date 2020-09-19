@@ -20,6 +20,11 @@ void reportError(cl_int err, const std::string &filename, int line) {
   if (CL_SUCCESS == err)
     return;
 
+  if (CL_DEVICE_NOT_FOUND == err) {
+    std::cout << "Device not found\n";
+    return;
+  }
+
   // Таблица с кодами ошибок:
   // libs/clew/CL/cl.h:103
   // P.S. Быстрый переход к файлу в CLion: Ctrl+Shift+N -> cl.h (или даже с
@@ -79,18 +84,26 @@ int main() {
   OCL_SAFE_CALL(clGetPlatformIDs(platformsCount, platforms.data(), nullptr));
 
   cl_device_id device;
-  bool gpu = true;
+  bool found_device = false;
+  std::cout << "Trying to find gpu...\n";
   auto get_GPU_device = getDevice(CL_DEVICE_TYPE_GPU, platforms);
-  if (get_GPU_device.second)
+  if (get_GPU_device.second) {
+    found_device = true;
     device = get_GPU_device.first;
-  else {
-    gpu = false;
+  } else {
+    std::cout << "GPU not found. Trying to find cpu...\n";
+    found_device = true;
     auto get_CPU_device = getDevice(CL_DEVICE_TYPE_CPU, platforms);
     if (!get_CPU_device.second) {
       throw std::runtime_error("Can't find device");
     }
     device = get_CPU_device.first;
   }
+
+  if (!found_device)
+    std::runtime_error("Can't find device");
+
+  std::cout << "Device found\n";
 
   // TODO 2 Создайте контекст с выбранным устройством
   // См. документацию
