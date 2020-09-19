@@ -33,6 +33,13 @@ void reportError(cl_int err, const std::string &filename, int line)
 
 #define OCL_SAFE_CALL(expr) reportError(expr, __FILE__, __LINE__)
 
+template <typename T>
+void safeCallDeviceInfo(cl_device_id device, cl_device_info param_name, T* value) {
+    size_t size_var = 0;
+    OCL_SAFE_CALL(clGetDeviceInfo(device, param_name, 0, nullptr, &size_var));
+    OCL_SAFE_CALL(clGetDeviceInfo(device, param_name, size_var, value, nullptr));
+}
+
 
 int main()
 {    
@@ -42,19 +49,63 @@ int main()
 
     // TODO 1 По аналогии с предыдущим заданием узнайте какие есть устройства, и выберите из них какое-нибудь
     // (если в списке устройств есть хоть одна видеокарта - выберите ее, если нету - выбирайте процессор)
+    cl_device_id device_id;
+    bool is_gpu = false;
+    bool found = false;
+
+    cl_uint platformsCount = 0;
+    OCL_SAFE_CALL(clGetPlatformIDs(0, nullptr, &platformsCount));
+    std::vector<cl_platform_id> platforms(platformsCount);
+    OCL_SAFE_CALL(clGetPlatformIDs(platformsCount, platforms.data(), nullptr));
+
+    for (int platformIndex = 0; platformIndex < platformsCount; ++platformIndex) {
+        cl_platform_id platform = platforms[platformIndex];
+
+        cl_uint devicesCount = 0;
+        OCL_SAFE_CALL(clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, 0, nullptr, &devicesCount));
+        std::vector<cl_device_id> devices(platformsCount);
+        OCL_SAFE_CALL(clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, devicesCount, devices.data(), nullptr));
+
+        for (int deviceIndex = 0; deviceIndex < devicesCount; ++deviceIndex) {
+            cl_device_id device = devices[deviceIndex];
+
+            cl_device_type deviceType;
+            safeCallDeviceInfo(device, CL_DEVICE_TYPE, &deviceType);
+            if (deviceType == CL_DEVICE_TYPE_GPU) {
+                device_id = device;
+                found = true;
+                is_gpu = true;
+                break;
+            } else if (deviceType == CL_DEVICE_TYPE_CPU) {
+                device_id = device;
+            }
+        }
+        if (found) {
+            break;
+        }
+    }
+
+    if (not found) {
+        throw std::runtime_error("No CPU or GPU devices found.");
+    }
 
     // TODO 2 Создайте контекст с выбранным устройством
     // См. документацию https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/ -> OpenCL Runtime -> Contexts -> clCreateContext
     // Не забывайте проверять все возвращаемые коды на успешность (обратите внимание что в данном случае метод возвращает
     // код по переданному аргументом errcode_ret указателю)
     // И хорошо бы сразу добавить в конце clReleaseContext (да, не очень RAII, но это лишь пример)
+    cl_int err_code;
+    cl_context context = clCreateContext(nullptr, 1, &device_id, nullptr, nullptr, &err_code);
+    OCL_SAFE_CALL(err_code);
 
     // TODO 3 Создайте очередь выполняемых команд в рамках выбранного контекста и устройства
     // См. документацию https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/ -> OpenCL Runtime -> Runtime APIs -> Command Queues -> clCreateCommandQueue
     // Убедитесь что в соответствии с документацией вы создали in-order очередь задач
     // И хорошо бы сразу добавить в конце clReleaseQueue (не забывайте освобождать ресурсы)
+    cl_command_queue queue = clCreateCommandQueue(context, device_id, 0, &err_code);
+    OCL_SAFE_CALL(err_code);
 
-    unsigned int n = 1000*1000;
+    unsigned int n = 100*1000*1000;
     // Создаем два массива псевдослучайных данных для сложения и массив для будущего хранения результата
     std::vector<float> as(n, 0);
     std::vector<float> bs(n, 0);
@@ -72,6 +123,12 @@ int main()
     // Данные в as и bs можно прогрузить этим же методом скопировав данные из host_ptr=as.data() (и не забыв про битовый флаг на это указывающий)
     // или же через метод Buffer Objects -> clEnqueueWriteBuffer
     // И хорошо бы сразу добавить в конце clReleaseMemObject (аналогично все дальнейшие ресурсы вроде OpenCL под-программы, кернела и т.п. тоже нужно освобождать)
+    cl_mem mem_a = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * as.size(), as.data(), &err_code);
+    OCL_SAFE_CALL(err_code);
+    cl_mem mem_b = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * bs.size(), bs.data(), &err_code);
+    OCL_SAFE_CALL(err_code);
+    cl_mem mem_c = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * cs.size(), nullptr, &err_code);
+    OCL_SAFE_CALL(err_code);
 
     // TODO 6 Выполните TODO 5 (реализуйте кернел в src/cl/aplusb.cl)
     // затем убедитесь что выходит загрузить его с диска (убедитесь что Working directory выставлена правильно - см. описание задания)
@@ -83,36 +140,49 @@ int main()
         if (kernel_sources.size() == 0) {
             throw std::runtime_error("Empty source file! May be you forgot to configure working directory properly?");
         }
-        // std::cout << kernel_sources << std::endl;
+//        std::cout << kernel_sources << std::endl;
     }
 
     // TODO 7 Создайте OpenCL-подпрограмму с исходниками кернела
     // см. Runtime APIs -> Program Objects -> clCreateProgramWithSource
     // у string есть метод c_str(), но обратите внимание что передать вам нужно указатель на указатель
+    const char** strs = new const char*{kernel_sources.c_str()};
+    size_t* lens = new size_t{kernel_sources.size()};
+    cl_program program = clCreateProgramWithSource(context, 1, strs, lens, &err_code);
+    OCL_SAFE_CALL(err_code);
     
     // TODO 8 Теперь скомпилируйте программу и напечатайте в консоль лог компиляции
     // см. clBuildProgram
-
+    try {
+        OCL_SAFE_CALL(clBuildProgram(program, 1, &device_id, nullptr, nullptr, nullptr));
+    } catch (std::exception& err) {
+        std::cout << err.what() << '\n';
+    }
     // А так же напечатайте лог компиляции (он будет очень полезен, если в кернеле есть синтаксические ошибки - т.е. когда clBuildProgram вернет CL_BUILD_PROGRAM_FAILURE)
     // Обратите внимание что при компиляции на процессоре через Intel OpenCL драйвер - в логе указывается какой ширины векторизацию получилось выполнить для кернела
     // см. clGetProgramBuildInfo
-//    size_t log_size = 0;
-//    std::vector<char> log(log_size, 0);
-//    if (log_size > 1) {
-//        std::cout << "Log:" << std::endl;
-//        std::cout << log.data() << std::endl;
-//    }
+
+    size_t log_size = 0;
+    OCL_SAFE_CALL(clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, 0, nullptr, &log_size));
+    std::vector<char> log(log_size, 0);
+    OCL_SAFE_CALL(clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, log_size, log.data(), nullptr));
+    if (log_size > 1) {
+        std::cout << "Log:" << std::endl;
+        std::cout << log.data() << std::endl;
+    }
 
     // TODO 9 Создайте OpenCL-kernel в созданной подпрограмме (в одной подпрограмме может быть несколько кернелов, но в данном случае кернел один)
     // см. подходящую функцию в Runtime APIs -> Program Objects -> Kernel Objects
+    cl_kernel kernel = clCreateKernel(program, "aplusb", &err_code);
+    OCL_SAFE_CALL(err_code);
 
     // TODO 10 Выставите все аргументы в кернеле через clSetKernelArg (as_gpu, bs_gpu, cs_gpu и число значений, убедитесь что тип количества элементов такой же в кернеле)
     {
-        // unsigned int i = 0;
-        // clSetKernelArg(kernel, i++, ..., ...));
-        // clSetKernelArg(kernel, i++, ..., ...));
-        // clSetKernelArg(kernel, i++, ..., ...));
-        // clSetKernelArg(kernel, i++, ..., ...));
+         unsigned int i = 0;
+         OCL_SAFE_CALL(clSetKernelArg(kernel, i++, sizeof(mem_a), &mem_a));
+         OCL_SAFE_CALL(clSetKernelArg(kernel, i++, sizeof(mem_b), &mem_b));
+         OCL_SAFE_CALL(clSetKernelArg(kernel, i++, sizeof(mem_c), &mem_c));
+         OCL_SAFE_CALL(clSetKernelArg(kernel, i++, sizeof(unsigned int), &n));
     }
 
     // TODO 11 Выше увеличьте n с 1000*1000 до 100*1000*1000 (чтобы дальнейшие замеры были ближе к реальности)
@@ -173,5 +243,9 @@ int main()
 //        }
 //    }
 
+    delete strs;
+    delete lens;
+    OCL_SAFE_CALL(clReleaseCommandQueue(queue));
+    OCL_SAFE_CALL(clReleaseContext(context));
     return 0;
 }
