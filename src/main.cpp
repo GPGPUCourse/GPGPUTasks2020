@@ -160,7 +160,7 @@ int main()
     OCL_SAFE_CALL(error);
     cl_mem bsGpu = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * n, bs.data(), &error);
     OCL_SAFE_CALL(error);
-    cl_mem csGpu = clCreateBuffer(context, CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(float) * n, cs.data(), &error);
+    cl_mem csGpu = clCreateBuffer(context, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, sizeof(float) * n, cs.data(), &error);
     OCL_SAFE_CALL(error);
 
     // TODO 6 Выполните TODO 5 (реализуйте кернел в src/cl/aplusb.cl)
@@ -247,7 +247,7 @@ int main()
         // - Флопс - это число операций с плавающей точкой в секунду
         // - В гигафлопсе 10^9 флопсов
         // - Среднее время выполнения кернела равно t.lapAvg() секунд
-        std::cout << "GFlops: " << (n / t.lapAvg()) / 1000000000 << std::endl;
+        std::cout << "GFlops: " << (n / t.lapAvg()) / 1000000000.0 << std::endl;
 
         // TODO 14 Рассчитайте используемую пропускную способность обращений к видеопамяти (в гигабайтах в секунду)
         // - Всего элементов в массивах по n штук

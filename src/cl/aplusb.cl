@@ -8,7 +8,7 @@ __kernel void aplusb(__global const float* a, __global const float* b, __global 
 {
     unsigned int index = get_global_id(0);
 
-    if (index >- n)
+    if (index >= n)
     	return;
 
     c[index] = a[index] + b[index];
