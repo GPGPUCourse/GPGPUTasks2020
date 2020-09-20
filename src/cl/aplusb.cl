@@ -12,16 +12,16 @@
 // - Четвертым и последним аргументом должно быть передано количество элементов в каждом массиве (unsigned int, главное чтобы тип был согласован с типом в соответствующем clSetKernelArg в T0D0 10)
 
 __kernel void aplusb(__global const float* a,
-					 __global const float* b,
-					 __global       float* c,
-					 unsigned int n)
+		     __global const float* b,
+		     __global       float* c,
+		     unsigned int n)
 {
     // Узнать какой workItem выполняется в этом потоке поможет функция get_global_id
     // см. в документации https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/
     // OpenCL Compiler -> Built-in Functions -> Work-Item Functions
 	
 	const unsigned int index = get_global_id(0);
-	if(index>=n)return;
+	if (index>=n) return;
 	c[index] = a[index] + b[index];
 
     // P.S. в общем случае количество элементов для сложения может быть некратно размеру WorkGroup, тогда размер рабочего пространства округлен вверх от числа элементов до кратности на размер WorkGroup
