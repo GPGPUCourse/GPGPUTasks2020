@@ -245,6 +245,11 @@ int main()
         }
     }
 
+
+    OCL_SAFE_CALL(clReleaseProgram(program));
+    OCL_SAFE_CALL(clReleaseMemObject(dAs));
+    OCL_SAFE_CALL(clReleaseMemObject(dBs));
+    OCL_SAFE_CALL(clReleaseMemObject(dCs));
     OCL_SAFE_CALL(clReleaseCommandQueue(queue));
     OCL_SAFE_CALL(clReleaseContext(context));
 
