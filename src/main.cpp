@@ -260,7 +260,7 @@ int main()
 			t.nextLap();
 		}
 		std::cout << "Result data transfer time: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
-		std::cout << "VRAM -> RAM bandwidth: " << n / t.lapAvg() / (1<<30) << " GB/s" << std::endl;
+		std::cout << "VRAM -> RAM bandwidth: " << sizeof(float) * n / t.lapAvg() / (1<<30) << " GB/s" << std::endl;
 	}
 
 	// TODO 16 Сверьте результаты вычислений со сложением чисел на процессоре (и убедитесь, что если в кернеле сделать намеренную ошибку, то эта проверка поймает ошибку)
