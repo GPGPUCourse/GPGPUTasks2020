@@ -121,7 +121,7 @@ int main()
     cl_mem c_buf = clCreateBuffer(context,
                                   CL_MEM_WRITE_ONLY,
                                   cs.size() * sizeof(float),
-                                  cs.data(),
+                                  nullptr,
                                   &err_ret);
     OCL_SAFE_CALL(err_ret);
 
