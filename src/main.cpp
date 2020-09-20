@@ -157,6 +157,7 @@ int main()
                                                  nullptr, &event));
             OCL_SAFE_CALL(clWaitForEvents(1, &event));
             t.nextLap(); // При вызове nextLap секундомер запоминает текущий замер (текущий круг) и начинает замерять время следующего круга
+            OCL_SAFE_CALL(clReleaseEvent(event));
         }
         // Среднее время круга (вычисления кернела) на самом деле считаются не по всем замерам, а лишь с 20%-перцентайля по 80%-перцентайль (как и стандартное отклониение)
         // подробнее об этом - см. timer.lapsFiltered
@@ -176,6 +177,7 @@ int main()
                                               nullptr, &event));
             OCL_SAFE_CALL(clWaitForEvents(1, &event));
             t.nextLap();
+            OCL_SAFE_CALL(clReleaseEvent(event));
         }
         std::cout << "Result data transfer time: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
         std::cout << "VRAM -> RAM bandwidth: " << n * sizeof(float) / t.lapAvg() / (1 << 30)  << " GB/s" << std::endl;
