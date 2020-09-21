@@ -109,7 +109,7 @@ void ALU::initProgram() {
     }
 
     std::vector<const char *> sources { kernel_sources.c_str() };
-    std::vector<const size_t> length(kernel_sources.length());
+    std::vector<size_t> length(kernel_sources.length());
 
     cl_int * error = nullptr;
     additiveProgram = clCreateProgramWithSource(currentContext,
