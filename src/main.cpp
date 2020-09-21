@@ -256,8 +256,8 @@ int main() {
         timer t;
         for (unsigned int i = 0; i < 20; ++i) {
             cl_event event;
-            clEnqueueReadBuffer(command_queue_ptr.get(), cs_buf_ptr.get(), CL_TRUE, 0, sizeof(float) * n, cs.data(), 0,
-                                nullptr, &event);
+            OCL_SAFE_CALL(clEnqueueReadBuffer(command_queue_ptr.get(), cs_buf_ptr.get(), CL_TRUE, 0, sizeof(float) * n,
+                                              cs.data(), 0, nullptr, &event));
             // clEnqueueReadBuffer...
             t.nextLap();
         }
