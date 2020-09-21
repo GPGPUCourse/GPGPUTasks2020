@@ -50,7 +50,6 @@ int main()
     // TODO 1 По аналогии с предыдущим заданием узнайте какие есть устройства, и выберите из них какое-нибудь
     // (если в списке устройств есть хоть одна видеокарта - выберите ее, если нету - выбирайте процессор)
     cl_device_id device_id;
-    bool is_gpu = false;
     bool found = false;
 
     cl_uint platformsCount = 0;
@@ -74,7 +73,6 @@ int main()
             if (deviceType == CL_DEVICE_TYPE_GPU) {
                 device_id = device;
                 found = true;
-                is_gpu = true;
                 break;
             } else if (deviceType == CL_DEVICE_TYPE_CPU) {
                 device_id = device;
@@ -191,7 +189,7 @@ int main()
     // - С одномерной рабочей группой размера 128
     // - В одномерном рабочем пространстве размера roundedUpN, где roundedUpN - наименьшее число кратное 128 и при этом не меньшее n
     // - см. clEnqueueNDRangeKernel
-    // - Обратите внимание что чтобы дождаться окончания вычислений (чтобы знать когда можно смотреть результаты в cs_gpu) нужно:
+    // - Обратите внимание что чтобы дождаться окон чания вычислений (чтобы знать когда можно смотреть результаты в cs_gpu) нужно:
     //   - Сохранить событие "кернел запущен" (см. аргумент "cl_event *event")
     //   - Дождаться завершения полунного события - см. в документации подходящий метод среди Event Objects
     {
@@ -199,8 +197,9 @@ int main()
         size_t global_work_size = (n + workGroupSize - 1) / workGroupSize * workGroupSize;
         timer t; // Это вспомогательный секундомер, он замеряет время своего создания и позволяет усреднять время нескольких замеров
         for (unsigned int i = 0; i < 20; ++i) {
-            // clEnqueueNDRangeKernel...
-            // clWaitForEvents...
+            cl_event event;
+            OCL_SAFE_CALL(clEnqueueNDRangeKernel(queue, kernel, 1, nullptr, &global_work_size, &workGroupSize, 0, nullptr, &event));
+            OCL_SAFE_CALL(clWaitForEvents(1, &event));
             t.nextLap(); // При вызове nextLap секундомер запоминает текущий замер (текущий круг) и начинает замерять время следующего круга
         }
         // Среднее время круга (вычисления кернела) на самом деле считаются не по всем замерам, а лишь с 20%-перцентайля по 80%-перцентайль (как и стандартное отклониение)
@@ -214,7 +213,8 @@ int main()
         // - Флопс - это число операций с плавающей точкой в секунду
         // - В гигафлопсе 10^9 флопсов
         // - Среднее время выполнения кернела равно t.lapAvg() секунд
-        std::cout << "GFlops: " << 0 << std::endl;
+        double gflops = n / t.lapAvg() / std::pow(10, 9);
+        std::cout << "GFlops: " << gflops << std::endl;
 
         // TODO 14 Рассчитайте используемую пропускную способность обращений к видеопамяти (в гигабайтах в секунду)
         // - Всего элементов в массивах по n штук
@@ -222,29 +222,34 @@ int main()
         // - Обращений к видеопамяти т.о. 2*n*sizeof(float) байт на чтение и 1*n*sizeof(float) байт на запись, т.е. итого 3*n*sizeof(float) байт
         // - В гигабайте 1024*1024*1024 байт
         // - Среднее время выполнения кернела равно t.lapAvg() секунд
-        std::cout << "VRAM bandwidth: " << 0 << " GB/s" << std::endl;
+        double bandwidth = 3. * n * sizeof(float) / t.lapAvg() / std::pow(10, 13);
+        std::cout << "VRAM bandwidth: " << bandwidth << " GB/s" << std::endl;
     }
 
     // TODO 15 Скачайте результаты вычислений из видеопамяти (VRAM) в оперативную память (RAM) - из cs_gpu в cs (и рассчитайте скорость трансфера данных в гигабайтах в секунду)
     {
         timer t;
         for (unsigned int i = 0; i < 20; ++i) {
-            // clEnqueueReadBuffer...
+            OCL_SAFE_CALL(clEnqueueReadBuffer(queue, mem_c, CL_TRUE, 0, sizeof(float) * n, cs.data(), 0, nullptr, nullptr));
             t.nextLap();
         }
         std::cout << "Result data transfer time: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
-        std::cout << "VRAM -> RAM bandwidth: " << 0 << " GB/s" << std::endl;
+        double bandwidth = 1. * n * sizeof(float) / t.lapAvg() / std::pow(10, 13);
+        std::cout << "VRAM -> RAM bandwidth: " << bandwidth << " GB/s" << std::endl;
     }
 
     // TODO 16 Сверьте результаты вычислений со сложением чисел на процессоре (и убедитесь, что если в кернеле сделать намеренную ошибку, то эта проверка поймает ошибку)
-//    for (unsigned int i = 0; i < n; ++i) {
-//        if (cs[i] != as[i] + bs[i]) {
-//            throw std::runtime_error("CPU and GPU results differ!");
-//        }
-//    }
+    for (unsigned int i = 0; i < n; ++i) {
+        if (cs[i] != as[i] + bs[i]) {
+            throw std::runtime_error("CPU and GPU results differ!");
+        }
+    }
 
     delete strs;
     delete lens;
+    OCL_SAFE_CALL(clReleaseMemObject(mem_c));
+    OCL_SAFE_CALL(clReleaseMemObject(mem_a));
+    OCL_SAFE_CALL(clReleaseMemObject(mem_b));
     OCL_SAFE_CALL(clReleaseCommandQueue(queue));
     OCL_SAFE_CALL(clReleaseContext(context));
     return 0;
