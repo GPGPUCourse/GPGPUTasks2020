@@ -16,7 +16,7 @@ __kernel void aplusb(__global const float* as, __global const float* bs, __globa
     // Узнать какой workItem выполняется в этом потоке поможет функция get_global_id
     // см. в документации https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/
     // OpenCL Compiler -> Built-in Functions -> Work-Item Functions
-    auto index = get_global_id(0);
+    size_t index = get_global_id(0);
     if (index >= n) return;
 
     cs[index] = as[index] + bs[index];
