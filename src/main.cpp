@@ -33,23 +33,22 @@ void reportError(cl_int err, const std::string &filename, int line)
 
 #define OCL_SAFE_CALL(expr) reportError(expr, __FILE__, __LINE__)
 
-cl_device_id chooseDevice(cl_platform_id* platform) {
+cl_device_id chooseDevice(cl_platform_id *platform) {
     cl_uint platformCount;
     OCL_SAFE_CALL(clGetPlatformIDs(0, nullptr, &platformCount));
     std::vector<cl_platform_id> platforms(platformCount);
     OCL_SAFE_CALL(clGetPlatformIDs(platformCount, platforms.data(), nullptr));
     for (auto platformId : platforms) {
         for (auto type : {CL_DEVICE_TYPE_GPU, CL_DEVICE_TYPE_CPU}) {
-            cl_uint deviceCount;
-            OCL_SAFE_CALL(clGetDeviceIDs(platformId, type, 0, nullptr, &deviceCount));
-            if (deviceCount) {
-                cl_device_id deviceId;
-                OCL_SAFE_CALL(clGetDeviceIDs(platformId, type, 1, &deviceId, nullptr));
-                if (platform) *platform = platformId;
-                return deviceId;
-            }
+            cl_device_id deviceId;
+            auto errorCode = clGetDeviceIDs(platformId, type, 1, &deviceId, nullptr);
+            if (errorCode == CL_DEVICE_NOT_FOUND) continue;
+            OCL_SAFE_CALL(errorCode);
+            if (platform) *platform = platformId;
+            return deviceId;
         }
     }
+    throw std::runtime_error("No CPU/GPU found");
 }
 
 int main()
