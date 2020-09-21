@@ -49,23 +49,10 @@ int main()
     OCL_SAFE_CALL(clGetPlatformIDs(platformsCount, platforms.data(), nullptr));
     cl_platform_id platform = platforms[0];
     cl_uint devicesCount = 0;
-    OCL_SAFE_CALL(clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 0, nullptr, &devicesCount));
+    OCL_SAFE_CALL(clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, 0, nullptr, &devicesCount));
 
-    std::vector<cl_device_id> devices;
-
-    if (devicesCount > 0)
-    {
-        devices = std::vector<cl_device_id>(devicesCount);
-        OCL_SAFE_CALL(clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, devicesCount, devices.data(), nullptr));
-    }
-    else
-    {
-        OCL_SAFE_CALL(clGetDeviceIDs(platform, CL_DEVICE_TYPE_CPU, 0, nullptr, &devicesCount));
-
-        devices = std::vector<cl_device_id>(devicesCount);
-        OCL_SAFE_CALL(clGetDeviceIDs(platform, CL_DEVICE_TYPE_CPU, devicesCount, devices.data(), nullptr));
-    }
-
+    std::vector<cl_device_id> devices(devicesCount);
+    OCL_SAFE_CALL(clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, devicesCount, devices.data(), nullptr));
     cl_device_id device = devices[0];
 
     size_t deviceNameSize = 0;
