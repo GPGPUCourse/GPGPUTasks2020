@@ -59,6 +59,9 @@ __kernel void mandelbrot(__global float* results,
     const int i = get_global_id(0);
     const int j = get_global_id(1);
 
+    if (i >= width || j >= height)
+        return;
+
     const float stepX = sizeX * 1.0f / width;
     const float stepY = sizeY * 1.0f / height;
 

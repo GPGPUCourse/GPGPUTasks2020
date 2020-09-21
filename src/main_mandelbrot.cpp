@@ -127,7 +127,7 @@ int main(int argc, char **argv)
         results_vram.resizeN(width * height);
 
         const unsigned int workGroupSizeX = 8;
-        const unsigned int workGroupSizeY = 4;
+        const unsigned int workGroupSizeY = 8;
         const unsigned int global_work_size_x = (width + workGroupSizeX - 1) / workGroupSizeX * workGroupSizeX;
         const unsigned int global_work_size_y = (height + workGroupSizeY - 1) / workGroupSizeY * workGroupSizeY;
         
@@ -180,8 +180,8 @@ int main(int argc, char **argv)
     // Это бонус ввиде интерактивной отрисовки, не забудьте запустить на ГПУ чтобы посмотреть в какой момент числа итераций/точности single float перестанет хватать
     // Кликами мышки можно смещать ракурс
     // Но в Pull-request эти две строки должны быть закомментированы, т.к. на автоматическом тестировании нет оконной подсистемы 
-    // bool useGPU = true;
-    // renderInWindow(centralX, centralY, iterationsLimit, useGPU);
+    bool useGPU = true;
+    renderInWindow(centralX, centralY, iterationsLimit, useGPU);
 
     return 0;
 }
@@ -208,6 +208,7 @@ void renderInWindow(float centralX, float centralY, unsigned int iterationsLimit
         results_vram.resizeN(width * height);
     }
 
+    timer t;
     do {
         if (!useGPU) {
             mandelbrotCPU(results.ptr(), width, height,
@@ -249,7 +250,9 @@ void renderInWindow(float centralX, float centralY, unsigned int iterationsLimit
         }
         sizeX /= zoomingSpeed;
         sizeY /= zoomingSpeed;
+        t.nextLap();
     } while (!window.isClosed());
+    std::cout << "Frame time: " << t.lapAvg() << "+-" << t.lapStd() << " s => ~" << 1 / t.lapAvg() << " FPS"  << std::endl;
 }
 
 
