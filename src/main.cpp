@@ -271,5 +271,16 @@ int main()
        }
    }
 
+    OCL_SAFE_CALL(clReleaseContext(context));
+    OCL_SAFE_CALL(clReleaseCommandQueue(command_queue));
+
+
+    OCL_SAFE_CALL(clReleaseMemObject(asBuf));
+    OCL_SAFE_CALL(clReleaseMemObject(bsBuf));
+    OCL_SAFE_CALL(clReleaseMemObject(csBuf));
+
+
+
+
     return 0;
 }
