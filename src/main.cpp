@@ -78,7 +78,10 @@ int main()
     
     // TODO 1 По аналогии с предыдущим заданием узнайте какие есть устройства, и выберите из них какое-нибудь
     // (если в списке устройств есть хоть одна видеокарта - выберите ее, если нету - выбирайте процессор)
-    auto[platform, device, is_gpu] = choose_device();
+    auto device_data = choose_device();
+    auto platform = std::get<0>(device_data);
+    auto device = std::get<1>(device_data);
+    auto is_gpu = std::get<2>(device_data);
     std::cout << "Used GPU: " << (is_gpu ? "true" : "false") << std::endl;
 
     // TODO 2 Создайте контекст с выбранным устройством
@@ -247,6 +250,12 @@ int main()
         }
     }
 
+    OCL_SAFE_CALL(clReleaseKernel(kernel));
+    OCL_SAFE_CALL(clReleaseProgram(program));
+    OCL_SAFE_CALL(clReleaseMemObject(c));
+    OCL_SAFE_CALL(clReleaseMemObject(b));
+    OCL_SAFE_CALL(clReleaseMemObject(a));
+    OCL_SAFE_CALL(clReleaseCommandQueue(command_queue));
     OCL_SAFE_CALL(clReleaseContext(context));
     return 0;
 }
