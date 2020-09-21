@@ -52,7 +52,7 @@ std::tuple<cl_platform_id, cl_device_id, bool> choose_device() {
             cl_device_type deviceType;
             OCL_SAFE_CALL(clGetDeviceInfo(device, CL_DEVICE_TYPE, deviceTypeSize, &deviceType, nullptr));
             if (deviceType == CL_DEVICE_TYPE_GPU) {
-                return {platform, device, true};
+                return std::tuple<cl_platform_id, cl_device_id, bool>(platform, device, true);
             }
         }
         
@@ -64,7 +64,7 @@ std::tuple<cl_platform_id, cl_device_id, bool> choose_device() {
             cl_device_type deviceType;
             OCL_SAFE_CALL(clGetDeviceInfo(device, CL_DEVICE_TYPE, deviceTypeSize, &deviceType, nullptr));
             if (deviceType == CL_DEVICE_TYPE_CPU)
-                return {platform, device, false};
+                return std::tuple<cl_platform_id, cl_device_id, bool>(platform, device, false);
         }
     }
     assert(false);
