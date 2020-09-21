@@ -222,7 +222,7 @@ int main()
         // - Обращений к видеопамяти т.о. 2*n*sizeof(float) байт на чтение и 1*n*sizeof(float) байт на запись, т.е. итого 3*n*sizeof(float) байт
         // - В гигабайте 1024*1024*1024 байт
         // - Среднее время выполнения кернела равно t.lapAvg() секунд
-        double bandwidth = 3. * n * sizeof(float) / t.lapAvg() / std::pow(10, 13);
+        double bandwidth = 3. * n * sizeof(float) / t.lapAvg() / std::pow(2, 30);
         std::cout << "VRAM bandwidth: " << bandwidth << " GB/s" << std::endl;
     }
 
@@ -234,7 +234,7 @@ int main()
             t.nextLap();
         }
         std::cout << "Result data transfer time: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
-        double bandwidth = 1. * n * sizeof(float) / t.lapAvg() / std::pow(10, 13);
+        double bandwidth = 1. * n * sizeof(float) / t.lapAvg() / std::pow(2, 30);
         std::cout << "VRAM -> RAM bandwidth: " << bandwidth << " GB/s" << std::endl;
     }
 
