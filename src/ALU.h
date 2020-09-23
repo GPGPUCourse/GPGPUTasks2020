@@ -38,7 +38,7 @@ private:
     void initComputation();
     void initBuffers(std::vector<float>& as,
                      std::vector<float>& bs);
-    void createBuffer(std::vector<float>& data,
+    void createReadBuffer(std::vector<float>& data,
                       std::vector<cl_mem>& storage,
                       cl_mem_flags flags);
 
@@ -46,4 +46,5 @@ private:
     void initKernel();
 
     void resetComputation();
+    void resetBuffers();
 };

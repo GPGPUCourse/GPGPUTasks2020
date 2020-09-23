@@ -64,7 +64,8 @@ cl_device_id getCLDevice(cl_device_type selectedDeviceType) {
     cl_device_id selectedDevice = nullptr;
 
     auto platformsIterator = platforms.begin();
-    while(selectedDevice == nullptr && platformsIterator != platforms.end()) {
+    cl_uint currentMaxComputeUnits = 0;
+    while(platformsIterator != platforms.end()) {
 
         auto platform = *platformsIterator;
 
@@ -81,7 +82,7 @@ cl_device_id getCLDevice(cl_device_type selectedDeviceType) {
         OCL_SAFE_CALL(clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, devicesCount, devices.data(), nullptr));
 
         auto devicesIterator = devices.begin();
-        while(selectedDevice == nullptr && devicesIterator != devices.end()) {
+        while(devicesIterator != devices.end()) {
 
             cl_device_id device = *devicesIterator;
 
@@ -90,7 +91,9 @@ cl_device_id getCLDevice(cl_device_type selectedDeviceType) {
             auto deviceType = cl_entity_info<cl_device_type>(device, CL_DEVICE_TYPE, clGetDeviceInfo);
             std::cout << "\t\tDevice type: ";
 
-            if (selectedDeviceType == deviceType) {
+            auto maxComputeUnits = cl_entity_info<cl_uint>(device, CL_DEVICE_MAX_COMPUTE_UNITS, clGetDeviceInfo);
+
+            if (selectedDeviceType == deviceType && currentMaxComputeUnits < maxComputeUnits) {
                 selectedDevice = device;
             }
             switch (deviceType) {
@@ -105,7 +108,6 @@ cl_device_id getCLDevice(cl_device_type selectedDeviceType) {
             }
             std::cout << std::endl;
 
-            auto maxComputeUnits = cl_entity_info<cl_uint>(device, CL_DEVICE_MAX_COMPUTE_UNITS, clGetDeviceInfo);
             std::cout << "\t\tDevice max compute units: " << round(maxComputeUnits) << std::endl;
 
             std::cout << "—————————————" << std::endl;
@@ -113,28 +115,6 @@ cl_device_id getCLDevice(cl_device_type selectedDeviceType) {
             devicesIterator++;
         }
         platformsIterator++;
-//        for(auto const& device: devices) {
-//            auto deviceName = cl_entity_info(device, CL_DEVICE_NAME, clGetDeviceInfo);
-//            std::cout << "\t\tDevice name: " << deviceName.data() << std::endl;
-//            auto deviceType = cl_entity_info<cl_device_type>(device, CL_DEVICE_TYPE, clGetDeviceInfo);
-//            std::cout << "\t\tDevice type: ";
-//            switch (deviceType) {
-//                case CL_DEVICE_TYPE_GPU:
-//                    std::cout << " GPU" ;
-//                    break;
-//                case CL_DEVICE_TYPE_CPU:
-//                    std::cout << " CPU" ;
-//                    break;
-//                default:
-//                    break;
-//            }
-//            std::cout << std::endl;
-//
-//            auto maxComputeUnits = cl_entity_info<cl_uint>(device, CL_DEVICE_MAX_COMPUTE_UNITS, clGetDeviceInfo);
-//            std::cout << "\t\tDevice max compute units: " << round(maxComputeUnits) << std::endl;
-//
-//            std::cout << "—————————————" << std::endl;
-//        }
     }
     return selectedDevice;
 }

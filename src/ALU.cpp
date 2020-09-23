@@ -20,14 +20,11 @@ void ALU::selectDevice() {
     if(currentDevice == nullptr) {
         throw std::runtime_error("No proper device found");
     }
-    assert(currentDevice != nullptr);
 }
 
 void ALU::initComputation() {
 
-    cl_int *errcode_ret = nullptr;
-
-
+    cl_int errcode_ret = CL_INVALID_VALUE;
     const cl_device_id devices []{currentDevice};
 
     currentContext = clCreateContext(nullptr,
@@ -35,64 +32,96 @@ void ALU::initComputation() {
                                      devices,
                                      nullptr,
                                      nullptr,
-                                     errcode_ret);
+                                     &errcode_ret);
 
-    assert(errcode_ret == nullptr);
+    if(errcode_ret != CL_SUCCESS) {
+        throw std::runtime_error("Cannot create device context");
+    }
 
-    errcode_ret = nullptr;
+    errcode_ret = CL_INVALID_VALUE;
     currentCommandQueue = clCreateCommandQueue(currentContext,
                                                currentDevice,
                                                0,
-                                               errcode_ret);
+                                               &errcode_ret);
 
-    assert(errcode_ret == nullptr);
+    if(errcode_ret != CL_SUCCESS) {
+        throw std::runtime_error("Cannot create device command queue");
+    }
 }
 
 void ALU::resetComputation() {
 
-    for (const auto& buffer : usedInBuffers) {
-        clReleaseMemObject(buffer);
-    }
+    resetBuffers();
 
-    for (const auto& buffer : usedOutBuffers) {
-        clReleaseMemObject(buffer);
-    }
+    OCL_SAFE_CALL(clReleaseProgram(additiveProgram));
 
-    clReleaseProgram(additiveProgram);
-
-    clReleaseCommandQueue(currentCommandQueue);
-    clReleaseContext(currentContext);
+    OCL_SAFE_CALL(clReleaseCommandQueue(currentCommandQueue));
+    OCL_SAFE_CALL(clReleaseContext(currentContext));
 }
 
-void ALU::createBuffer(std::vector<float> &data, std::vector<cl_mem>& storage, cl_mem_flags flags) {
+void ALU::resetBuffers() {
 
-    cl_int *error = nullptr;
+    for (const auto& buffer : usedInBuffers) {
+        OCL_SAFE_CALL(clReleaseMemObject(buffer));
+    }
+    usedInBuffers.clear();
+
+    for (const auto& buffer : usedOutBuffers) {
+        OCL_SAFE_CALL(clReleaseMemObject(buffer));
+    }
+    usedOutBuffers.clear();
+}
+
+
+void ALU::createReadBuffer(std::vector<float> &data, std::vector<cl_mem>& storage, cl_mem_flags flags) {
+
+    cl_int error = CL_INVALID_VALUE;
     auto memBuffer = clCreateBuffer(currentContext,
                                     flags,
                                     sizeof(float) * data.size(),
-                                    data.data(),
-                                    error);
+                                    nullptr,
+                                    &error);
 
-    assert(memBuffer != nullptr);
+    if(memBuffer == nullptr) {
+        throw std::runtime_error("Cannot allocate buffer");
+    }
+
     storage.push_back(memBuffer);
+
+    cl_event event;
+
+    OCL_SAFE_CALL(clEnqueueWriteBuffer(currentCommandQueue,
+                                       memBuffer,
+                                       CL_FALSE,
+                                       0,
+                                       data.size() * sizeof(float),
+                                       data.data(),
+                                       0,
+                                       nullptr,
+                                       &event));
+
+    cl_event events[]{event};
+    OCL_SAFE_CALL(clWaitForEvents(1, events));
+    OCL_SAFE_CALL(clReleaseEvent(event));
 }
 
 void ALU::initBuffers(std::vector<float> &as,
                       std::vector<float> &bs) {
 
-    usedOutBuffers.clear();
+    resetBuffers();
 
-    createBuffer(as, usedInBuffers, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
-    createBuffer(bs, usedInBuffers, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR);
+    createReadBuffer(as, usedInBuffers, CL_MEM_READ_ONLY);
+    createReadBuffer(bs, usedInBuffers, CL_MEM_READ_ONLY);
 
-    usedOutBuffers.clear();
-    cl_int *error = nullptr;
+    cl_int error = CL_INVALID_VALUE;
     auto outputBuffer = clCreateBuffer(currentContext,
                                        CL_MEM_WRITE_ONLY,
                                        sizeof(float) * as.size(),
                                        nullptr,
-                                       error);
-    assert(outputBuffer != nullptr);
+                                       &error);
+    if(outputBuffer == nullptr) {
+        throw std::runtime_error("Cannot allocate buffer");
+    }
     usedOutBuffers.push_back(outputBuffer);
 }
 
@@ -109,30 +138,36 @@ void ALU::initProgram() {
     }
 
     std::vector<const char *> sources { kernel_sources.c_str() };
-    std::vector<const size_t> length(kernel_sources.length());
+    std::vector<size_t> length(kernel_sources.length());
 
-    cl_int * error = nullptr;
+    cl_int error = CL_INVALID_VALUE;
     additiveProgram = clCreateProgramWithSource(currentContext,
                                                 1,
                                                 sources.data(),
                                                 length.data(),
-                                                error);
+                                                &error);
 
-    assert(error == nullptr);
+    if(error != CL_SUCCESS) {
+        throw std::runtime_error("Cannot create program");
+    }
 
     cl_device_id devices[] {currentDevice};
 
     auto buildResult = clBuildProgram(additiveProgram, 1, devices, nullptr, nullptr, nullptr);
 
     std::cerr << additiveProgram << std::endl;
-    assert(buildResult == CL_BUILD_SUCCESS);
+    if(buildResult != CL_BUILD_SUCCESS) {
+        throw std::runtime_error("Cannot build program");
+    }
 }
 
 void ALU::initKernel() {
 
-    cl_int * error = nullptr;
-    additiveKernel = clCreateKernel(additiveProgram, "aplusb",  error);
-    assert(additiveKernel != nullptr);
+    cl_int error = CL_INVALID_VALUE;
+    additiveKernel = clCreateKernel(additiveProgram, "aplusb",  &error);
+    if(error != CL_SUCCESS) {
+        throw std::runtime_error("Cannot create kernel");
+    }
 }
 
 void ALU::setAddOperationBuffers(std::vector<float> &as,
@@ -182,6 +217,7 @@ void ALU::add(size_t globalWorkSize, size_t workGroupSize) {
     cl_event events[]{event};
 
     OCL_SAFE_CALL(clWaitForEvents(1, events));
+    OCL_SAFE_CALL(clReleaseEvent(event));
 }
 
 void ALU::readResult(std::vector<float> &cs) {
@@ -198,5 +234,6 @@ void ALU::readResult(std::vector<float> &cs) {
                                       &event));
 
     cl_event events[]{event};
-    clWaitForEvents(1, events);
+    OCL_SAFE_CALL(clWaitForEvents(1, events));
+    OCL_SAFE_CALL(clReleaseEvent(event));
 }
