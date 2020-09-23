@@ -159,6 +159,7 @@ int main()
     }
     std::cout << "Data generated for n=" << n << "!" << std::endl;
 
+
     cl_int bufferError = 0;
     unsigned int sizeInBytes = n * sizeof(float);
 
@@ -171,8 +172,7 @@ int main()
     cl_mem bufferCs = clCreateBuffer(context, CL_MEM_WRITE_ONLY + CL_MEM_USE_HOST_PTR,
                                      sizeInBytes, cs.data(), &bufferError);
     OCL_SAFE_CALL(bufferError);
-
-
+  
     std::string kernel_sources;
     {
         std::ifstream file("src/cl/aplusb.cl");
@@ -202,6 +202,7 @@ int main()
         std::cout << "Log:" << std::endl;
         std::cout << log.data() << std::endl;
     }
+
 
     cl_int kernelError = 0;
     cl_kernel kernel = clCreateKernel(program, "aplusb", &kernelError);
