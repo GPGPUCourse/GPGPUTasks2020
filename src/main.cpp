@@ -131,27 +131,26 @@ int main()
     cl_kernel kernel = clCreateKernel(program, "aplusb", &errcode);
     OCL_SAFE_CALL(errcode);
 
-    OCL_SAFE_CALL(clSetKernelArg(kernel, 0, mem_size, &as_mem));
-    OCL_SAFE_CALL(clSetKernelArg(kernel, 1, mem_size, &bs_mem));
-    OCL_SAFE_CALL(clSetKernelArg(kernel, 2, mem_size, &cs_mem));
+    OCL_SAFE_CALL(clSetKernelArg(kernel, 0, sizeof(cl_mem), &as_mem));
+    OCL_SAFE_CALL(clSetKernelArg(kernel, 1, sizeof(cl_mem), &bs_mem));
+    OCL_SAFE_CALL(clSetKernelArg(kernel, 2, sizeof(cl_mem), &cs_mem));
     OCL_SAFE_CALL(clSetKernelArg(kernel, 3, sizeof(unsigned int), &n));
 
     {
         size_t workGroupSize = 128;
         size_t global_work_size = (n + workGroupSize - 1) / workGroupSize * workGroupSize;
-        cl_event event;
         timer t;
         for (unsigned int i = 0; i < 20; ++i) {
+            cl_event event;
             OCL_SAFE_CALL(clEnqueueNDRangeKernel(command_queue, kernel, 1, nullptr, &global_work_size, &workGroupSize, 0, nullptr, &event));
             OCL_SAFE_CALL(clWaitForEvents(1, &event));
             t.nextLap();
+            OCL_SAFE_CALL(clReleaseEvent(event));
         }
 
         std::cout << "Kernel average time: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
         std::cout << "GFlops: " << n / (t.lapAvg() * 1000 * 1000 * 1000) << std::endl;
         std::cout << "VRAM bandwidth: " << 3.0 * mem_size / (t.lapAvg() * 1024 * 1024 * 1024) << " GB/s" << std::endl;
-
-        OCL_SAFE_CALL(clReleaseEvent(event));
     }
 
     {
@@ -171,6 +170,7 @@ int main()
     }
 
     OCL_SAFE_CALL(clReleaseKernel(kernel));
+    OCL_SAFE_CALL(clReleaseProgram(program));
     OCL_SAFE_CALL(clReleaseMemObject(cs_mem));
     OCL_SAFE_CALL(clReleaseMemObject(bs_mem));
     OCL_SAFE_CALL(clReleaseMemObject(as_mem));
