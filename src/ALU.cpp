@@ -54,7 +54,7 @@ void ALU::resetComputation() {
     resetBuffers();
 
     OCL_SAFE_CALL(clReleaseProgram(additiveProgram));
-
+    OCL_SAFE_CALL(clReleaseKernel(additiveKernel));
     OCL_SAFE_CALL(clReleaseCommandQueue(currentCommandQueue));
     OCL_SAFE_CALL(clReleaseContext(currentContext));
 }
