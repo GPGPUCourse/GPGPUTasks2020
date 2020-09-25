@@ -1,7 +1,10 @@
 #include <libutils/misc.h>
 #include <libutils/timer.h>
 #include <libutils/fast_random.h>
+#include <libgpu/context.h>
+#include <libgpu/shared_device_buffer.h>
 
+#include "cl/max_prefix_sum_cl.h"
 
 template<typename T>
 void raiseFail(const T &a, const T &b, std::string message, std::string filename, int line)
@@ -71,7 +74,47 @@ int main(int argc, char **argv)
         }
 
         {
-            // TODO: implement on OpenCL
+            gpu::Device device = gpu::chooseGPUDevice(argc, argv);
+
+            gpu::Context context;
+            context.init(device.device_id_opencl);
+            context.activate();
+
+            ocl::Kernel kernel(max_prefix_sum_kernel, max_prefix_sum_kernel_length, "max_prefix_sum");
+
+            bool printLog = false;
+            kernel.compile(printLog);
+
+            int gpu_sum, gpu_res;
+
+            gpu::gpu_mem_32i as_gpu;
+            gpu::gpu_mem_32i max_sum_gpu;
+            gpu::gpu_mem_32i res_gpu;
+            as_gpu.resizeN(n);
+            max_sum_gpu.resizeN(1);
+            res_gpu.resizeN(1);
+
+            as_gpu.writeN(as.data(), n);
+
+            timer t;
+            for (int iter = 0; iter < benchmarkingIters; ++iter) {
+                unsigned int workGroupSize = 128;
+                unsigned int global_work_size = (n + workGroupSize - 1) / workGroupSize * workGroupSize;
+                gpu_sum = -100000000;
+                max_sum_gpu.writeN(&gpu_sum, 1);
+                res_gpu.writeN(&gpu_sum, 1);
+
+                kernel.exec(gpu::WorkSize(workGroupSize, global_work_size), as_gpu, max_sum_gpu, res_gpu, n);
+
+                res_gpu.readN(&gpu_res, 1);
+                max_sum_gpu.readN(&gpu_sum, 1);
+
+                EXPECT_THE_SAME(reference_max_sum, gpu_sum, "GPU result should be consistent!");
+                EXPECT_THE_SAME(reference_result, gpu_res, "GPU result should be consistent!");
+                t.nextLap();
+            }
+            std::cout << "GPU:     " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
+            std::cout << "GPU:     " << (n/1000.0/1000.0) / t.lapAvg() << " millions/s" << std::endl;
         }
     }
 }
