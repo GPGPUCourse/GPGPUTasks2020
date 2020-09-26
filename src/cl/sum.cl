@@ -5,23 +5,23 @@
 #line 6
 
 
-__kernel void sum(__global const unsigned int *a, __local unsigned int *temp, const unsigned int n, __global unsigned int *sum)
+__kernel void sum(__global const unsigned int *a, __local unsigned int *temp, const unsigned int n, __global volatile unsigned int *sum)
 {
+    const unsigned int iGlobal = get_global_id(0);
+
     const unsigned int iGroup = get_local_id(0);
     const unsigned int groupSize = get_local_size(0);
-    const unsigned int groupCount = get_num_groups(0);
     
     const unsigned int iWarp = iGroup % WARP_SIZE;
     const unsigned int warpIndex = iGroup / WARP_SIZE;
     const unsigned int warpCount = (groupSize + WARP_SIZE - 1) / WARP_SIZE;
 
     // setup
-    if (get_global_id(0) == 0)
-        *sum = 0;
+    if (iGlobal == 0)
+        atomic_xchg(sum, 0);
     
-    temp[iGroup] = a[get_global_id(0)];
-    
-    barrier(CLK_LOCAL_MEM_FENCE);
+    temp[iGroup] = iGlobal < n ? a[iGlobal] : 0;
+    barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
     
     // variant 1: each warp adds elements from the next one in binary tree; the last remaining warp is summed manually 
     {
@@ -35,11 +35,12 @@ __kernel void sum(__global const unsigned int *a, __local unsigned int *temp, co
 
         // variant 1.1: last warp sums itself as a binary tree
         {
-            if (warpIndex == 0)
-                for (unsigned int step = 0; (1 << step) < WARP_SIZE; ++step)
-                    if (((2 * iWarp + 1) << step) < groupSize)
-                        temp[iWarp << (step + 1)] += temp[(2 * iWarp + 1) << step];
-                    // no barrier needed as we are operating within a single warp
+            for (unsigned int step = 1; step < WARP_SIZE; step <<= 1) {
+                const unsigned int target = 2 * iGroup * step;
+                if (target + step < WARP_SIZE)
+                    temp[target] += temp[target + step];
+                // no barrier needed as we are operating within a single warp
+            }
             // again, no barrier, because temp[0] will be read by a member of the same first warp
 
             if (iGroup == 0)

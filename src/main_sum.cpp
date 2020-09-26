@@ -76,8 +76,7 @@ int main(int argc, char **argv)
         unsigned int sum;
             
         gpu::gpu_mem_32u input_data_vram = gpu::gpu_mem_32u::createN(global_work_size);
-        as.resize(global_work_size, 0);
-        input_data_vram.writeN(as.data(), global_work_size);
+        input_data_vram.writeN(as.data(), n);
        
         gpu::gpu_mem_32u sum_vram;
         sum_vram.resizeN(1);
