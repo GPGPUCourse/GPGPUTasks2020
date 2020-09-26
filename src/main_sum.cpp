@@ -72,19 +72,25 @@ int main(int argc, char **argv)
         kernel.compile(printLog);
        
         const unsigned int workGroupSize = 256;
-        const unsigned int global_work_size = (n + workGroupSize - 1) / workGroupSize * workGroupSize;
         unsigned int sum;
-            
-        gpu::gpu_mem_32u input_data_vram = gpu::gpu_mem_32u::createN(global_work_size);
-        input_data_vram.writeN(as.data(), n);
-       
-        gpu::gpu_mem_32u sum_vram;
-        sum_vram.resizeN(1);
 
+        gpu::gpu_mem_32u initial_vram = gpu::gpu_mem_32u::createN(n);    
+        initial_vram.writeN(as.data(), n);
+        
+        gpu::gpu_mem_32u sum_vram[] = {
+            gpu::gpu_mem_32u::createN(n),
+            gpu::gpu_mem_32u::createN(n)
+        };
+       
         timer t;
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
-            kernel.exec(gpu::WorkSize(workGroupSize, global_work_size), input_data_vram, ocl::LocalMem(workGroupSize * sizeof(unsigned int)), n, sum_vram);
-            sum_vram.readN(&sum, 1);
+            unsigned int step = 0;
+            for (unsigned int size = n; size > 1; size = (size + workGroupSize - 1) / workGroupSize, ++step) {
+                kernel.exec(gpu::WorkSize(workGroupSize, size), step == 0 ? initial_vram : sum_vram[step & 1], ocl::LocalMem(workGroupSize * sizeof(unsigned int)), size, sum_vram[1 - (step & 1)]);
+            }
+            
+            sum_vram[step & 1].readN(&sum, 1);
+            
             EXPECT_THE_SAME(reference_sum, sum, "GPU result should be consistent!");
             t.nextLap();
         }
