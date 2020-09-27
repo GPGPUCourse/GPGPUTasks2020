@@ -4,7 +4,7 @@
 
 #line 6
 
-#define DEBUG 0
+#define DEBUG 1
 
 #define GROUP_SIZE (64)
 #define BLOCK_SIZE (16 + 1)  // +1 for solve bank conflicts
