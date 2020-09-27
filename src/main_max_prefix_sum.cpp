@@ -4,6 +4,7 @@
 
 #include <libgpu/context.h>
 #include <libgpu/shared_device_buffer.h>
+#include "libgpu/opencl/utils.h"
 
 #include "cl/max_prefix_sum_cl.h"
 
@@ -168,14 +169,14 @@ int main(int argc, char **argv)
                               *BufferSumSrc, *BufferMaxSumSrc, *BufferSrcInd,
                               *BufferSumRes, *BufferMaxSumRes, *BufferResInd, CurN, CellSize);
                 }
-                catch (...)
+                catch (const std::runtime_error &e)
                 {
                   std::cout << n << std::endl;
                   std::cout << NumberOfGroup << std::endl;
                   std::cout << CurN << std::endl;
                   std::cout << CellSize << std::endl;
                   std::cout << (n + GroupBlockSize - 1) / GroupBlockSize << std::endl;
-                  throw std::runtime_error("2");
+                  throw std::runtime_error(e.what());
                 }
 
                 std::swap(BufferSumSrc, BufferSumRes);
