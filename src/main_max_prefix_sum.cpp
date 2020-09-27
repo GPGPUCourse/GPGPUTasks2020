@@ -105,7 +105,7 @@ int main(int argc, char **argv)
             *BufferResInd{&BuffersArrayInd[1]};
 
           const unsigned int WorkGroupSize = 64;
-          const unsigned int BlockSize = 64 + 1;  // +1 for solve bank conflicts
+          const unsigned int BlockSize = 16 + 1;  // +1 for solve bank conflicts
           const unsigned int GroupBlockSize = WorkGroupSize * BlockSize;
 
           const unsigned int OptimalCPU = GroupBlockSize;
