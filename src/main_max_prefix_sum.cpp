@@ -117,10 +117,10 @@ int main(int argc, char **argv)
           BufferSrcFirst->writeN(as.data(), n);
 
           for (int i = 1; i < 5; i++)
-            BuffersArray[i].resizeN(NumberOfGroup * WorkGroupSize);
+            BuffersArray[i].resizeN(NumberOfGroup * WorkGroupSize * 4);
 
           for (int i = 0; i < 2; i++)
-            BuffersArrayInd[i].resizeN(NumberOfGroup * WorkGroupSize);
+            BuffersArrayInd[i].resizeN(NumberOfGroup * WorkGroupSize * 4);
 
           std::vector<int> ResSumArrCPU(OptimalCPU);
           std::vector<int> ResMaxSumArrCPU(OptimalCPU);
