@@ -61,7 +61,6 @@ __kernel void MaxPrefixSum( __global const int *SumArray,
 {
   __local int LocalSumArray[GROUP_SIZE * BLOCK_SIZE];
   __local int LocalMaxSumArray[GROUP_SIZE * BLOCK_SIZE];
-  //__local int LocalMaxSumIndArray[GROUP_SIZE * BLOCK_SIZE];
 
   for (unsigned int i = 0; i < BLOCK_SIZE; i++)
   {
@@ -73,41 +72,90 @@ __kernel void MaxPrefixSum( __global const int *SumArray,
 
     LocalSumArray[i * GROUP_SIZE + get_local_id(0)] = SumArray[Index];
     LocalMaxSumArray[i * GROUP_SIZE + get_local_id(0)] = MaxSumArray[Index];
-    //LocalMaxSumIndArray[i * GROUP_SIZE + get_local_id(0)] = MaxSumIndArray[Index];
   }
 
   barrier(CLK_LOCAL_MEM_FENCE);
 
-  int ResSum = 0;
-  int ResMaxSum = 0;
-  unsigned int ResMaxSumIndInArray = 0;
+  int Sum = 0;
+  int MaxSum = 0;
+  unsigned int MaxSumIndInArray = 0;
 
   for (unsigned int i = 0; i < BLOCK_SIZE; i++)
   {
-    const unsigned int Index = BLOCK_SIZE * get_local_id(0) + i;
+    const int Index = get_local_id(0) * BLOCK_SIZE + i;
 
     if (get_group_id(0) * GROUP_SIZE * BLOCK_SIZE + Index >= n)
       break;
 
-    const int TryMaxSum = ResSum + LocalMaxSumArray[Index];
+    const int TryMax = Sum + LocalMaxSumArray[Index];
 
-    if (TryMaxSum > ResMaxSum)
+    if (TryMax > MaxSum)
     {
-      ResMaxSum = TryMaxSum;
-      ResMaxSumIndInArray = i;
+      MaxSum = TryMax;
+      MaxSumIndInArray = i;
     }
 
-    ResSum += LocalSumArray[Index];
+    Sum += LocalSumArray[Index];
   }
 
-  ResSumArray[get_global_id(0)] = ResSum;
-  ResMaxSumArray[get_global_id(0)] = ResMaxSum;
-  
-  unsigned int ResMaxSumInd = 0;
+  ResSumArray[get_global_id(0)] = Sum;
+  ResMaxSumArray[get_global_id(0)] = MaxSum;
 
-  if (get_global_id(0) * BLOCK_SIZE + ResMaxSumIndInArray < n)
-    ResMaxSumInd = CellSize * ResMaxSumIndInArray +
-      MaxSumIndArray[get_global_id(0) * BLOCK_SIZE + ResMaxSumIndInArray];
+  if (get_group_id(0) * GROUP_SIZE * BLOCK_SIZE + BLOCK_SIZE * get_local_id(0) + MaxSumIndInArray < n)
+  {
+    ResMaxSumIndArray[get_global_id(0)] = CellSize * MaxSumIndInArray +
+      MaxSumIndArray[get_group_id(0) * GROUP_SIZE * BLOCK_SIZE + BLOCK_SIZE * get_local_id(0) + MaxSumIndInArray];
+  }
 
-  ResMaxSumIndArray[get_global_id(0)] = ResMaxSumInd;
+//  __local int LocalSumArray[GROUP_SIZE * BLOCK_SIZE];
+//  __local int LocalMaxSumArray[GROUP_SIZE * BLOCK_SIZE];
+//  //__local int LocalMaxSumIndArray[GROUP_SIZE * BLOCK_SIZE];
+//
+//  for (unsigned int i = 0; i < BLOCK_SIZE; i++)
+//  {
+//    const unsigned int Index = get_group_id(0) * GROUP_SIZE * BLOCK_SIZE +
+//                               i * GROUP_SIZE + get_local_id(0);
+//
+//    if (Index >= n)
+//      break;
+//
+//    LocalSumArray[i * GROUP_SIZE + get_local_id(0)] = SumArray[Index];
+//    LocalMaxSumArray[i * GROUP_SIZE + get_local_id(0)] = MaxSumArray[Index];
+//    //LocalMaxSumIndArray[i * GROUP_SIZE + get_local_id(0)] = MaxSumIndArray[Index];
+//  }
+//
+//  barrier(CLK_LOCAL_MEM_FENCE);
+//
+//  int ResSum = 0;
+//  int ResMaxSum = 0;
+//  unsigned int ResMaxSumIndInArray = 0;
+//
+//  for (unsigned int i = 0; i < BLOCK_SIZE; i++)
+//  {
+//    const unsigned int Index = BLOCK_SIZE * get_local_id(0) + i;
+//
+//    if (get_group_id(0) * GROUP_SIZE * BLOCK_SIZE + Index >= n)
+//      break;
+//
+//    const int TryMaxSum = ResSum + LocalMaxSumArray[Index];
+//
+//    if (TryMaxSum > ResMaxSum)
+//    {
+//      ResMaxSum = TryMaxSum;
+//      ResMaxSumIndInArray = i;
+//    }
+//
+//    ResSum += LocalSumArray[Index];
+//  }
+//
+//  ResSumArray[get_global_id(0)] = ResSum;
+//  ResMaxSumArray[get_global_id(0)] = ResMaxSum;
+//  
+//  unsigned int ResMaxSumInd = 0;
+//
+//  if (get_global_id(0) * BLOCK_SIZE + ResMaxSumIndInArray < n)
+//    ResMaxSumInd = CellSize * ResMaxSumIndInArray +
+//      MaxSumIndArray[get_global_id(0) * BLOCK_SIZE + ResMaxSumIndInArray];
+//
+//  ResMaxSumIndArray[get_global_id(0)] = ResMaxSumInd;
 }
