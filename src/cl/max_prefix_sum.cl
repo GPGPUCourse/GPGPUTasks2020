@@ -59,8 +59,8 @@ __kernel void MaxPrefixSum( __global const int *SumArray,
                             __global unsigned int *ResMaxSumIndArray,
                             const unsigned int n, const unsigned int CellSize )
 {
-  __local int LocalSumArray[GROUP_SIZE * BLOCK_SIZE];
-  __local int LocalMaxSumArray[GROUP_SIZE * BLOCK_SIZE];
+  __local int LocalSumArray[GROUP_SIZE * BLOCK_SIZE + BLOCK_SIZE * 2];
+  __local int LocalMaxSumArray[GROUP_SIZE * BLOCK_SIZE + BLOCK_SIZE * 2];
 
   for (unsigned int i = 0; i < BLOCK_SIZE; i++)
   {
