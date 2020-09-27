@@ -102,6 +102,10 @@ __kernel void MaxPrefixSum( __global const int *SumArray,
 
   ResSumArray[get_global_id(0)] = ResSum;
   ResMaxSumArray[get_global_id(0)] = ResMaxSum;
+  
+  if (get_global_id(0) * BLOCK_SIZE + ResMaxSumIndInArray >= n)
+    return;
+
   ResMaxSumIndArray[get_global_id(0)] = CellSize * ResMaxSumIndInArray +
     MaxSumIndArray[get_global_id(0) * BLOCK_SIZE + ResMaxSumIndInArray];
 }
