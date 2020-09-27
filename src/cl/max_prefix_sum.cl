@@ -65,15 +65,15 @@ __kernel void MaxPrefixSum( __global const int *SumArray,
   __local int LocalMaxSumArray[GROUP_SIZE * BLOCK_SIZE];
 
 #if DEBUG
-  if (get_num_groups(0) - 1 == get_group_id(0) && get_local_id(0) == get_local_size(0) - 1)
+  if (get_global_id(0) == 0)
   {
     printf("LS:    %d\n", GROUP_SIZE * BLOCK_SIZE);
     printf("n:     %d\n", n);
     printf("CS:    %d\n", CellSize);
-    printf("MI:    %d\n", get_group_id(0) * GROUP_SIZE * BLOCK_SIZE +
-                          (BLOCK_SIZE - 1) * GROUP_SIZE + get_local_id(0));
-    printf("MI2:   %d\n", BLOCK_SIZE * get_local_id(0) + BLOCK_SIZE - 1);
-    printf("MWI:   %d\n", get_global_id(0));
+    printf("MI:    %d\n", (get_num_groups(0) - 1) * GROUP_SIZE * BLOCK_SIZE +
+                          (BLOCK_SIZE - 1) * GROUP_SIZE + get_local_size(0) - 1);
+    printf("MI2:   %d\n", BLOCK_SIZE * (get_local_size(0) - 1) + BLOCK_SIZE - 1);
+    printf("MWI:   %d\n", get_global_size(0) - 1);
   }
 #endif
 
@@ -90,7 +90,7 @@ __kernel void MaxPrefixSum( __global const int *SumArray,
   }
 
 #if DEBUG
-  if (get_num_groups(0) - 1 == get_group_id(0) && get_local_id(0) == get_local_size(0) - 1)
+  if (get_global_id(0) == 0)
   {
     printf("0\n");
   }
@@ -99,7 +99,7 @@ __kernel void MaxPrefixSum( __global const int *SumArray,
   barrier(CLK_LOCAL_MEM_FENCE);
 
 #if DEBUG
-  if (get_num_groups(0) - 1 == get_group_id(0) && get_local_id(0) == get_local_size(0) - 1)
+  if (get_global_id(0) == 0)
   {
     printf("1\n");
   }
@@ -110,7 +110,7 @@ __kernel void MaxPrefixSum( __global const int *SumArray,
   unsigned int ResMaxSumIndInArray = 0;
 
 #if DEBUG
-  if (get_num_groups(0) - 1 == get_group_id(0) && get_local_id(0) == get_local_size(0) - 1)
+  if (get_global_id(0) == 0)
   {
     printf("2\n");
   }
@@ -135,7 +135,7 @@ __kernel void MaxPrefixSum( __global const int *SumArray,
   }
 
 #if DEBUG
-  if (get_num_groups(0) - 1 == get_group_id(0) && get_local_id(0) == get_local_size(0) - 1)
+  if (get_global_id(0) == 0)
   {
     printf("3\n");
   }
@@ -144,7 +144,7 @@ __kernel void MaxPrefixSum( __global const int *SumArray,
   ResSumArray[get_global_id(0)] = ResSum;
 
 #if DEBUG
-  if (get_num_groups(0) - 1 == get_group_id(0) && get_local_id(0) == get_local_size(0) - 1)
+  if (get_global_id(0) == 0)
   {
     printf("4\n");
   }
@@ -153,7 +153,7 @@ __kernel void MaxPrefixSum( __global const int *SumArray,
   ResMaxSumArray[get_global_id(0)] = ResMaxSum;
   
 #if DEBUG
-  if (get_num_groups(0) - 1 == get_group_id(0) && get_local_id(0) == get_local_size(0) - 1)
+  if (get_global_id(0) == 0)
   {
     printf("5\n");
   }
@@ -166,7 +166,7 @@ __kernel void MaxPrefixSum( __global const int *SumArray,
       MaxSumIndArray[get_global_id(0) * BLOCK_SIZE + ResMaxSumIndInArray];
 
 #if DEBUG
-  if (get_num_groups(0) - 1 == get_group_id(0) && get_local_id(0) == get_local_size(0) - 1)
+  if (get_global_id(0) == 0)
   {
     printf("6\n");
   }
@@ -175,7 +175,7 @@ __kernel void MaxPrefixSum( __global const int *SumArray,
   ResMaxSumIndArray[get_global_id(0)] = ResMaxSumInd;
 
 #if DEBUG
-  if (get_num_groups(0) - 1 == get_group_id(0) && get_local_id(0) == get_local_size(0) - 1)
+  if (get_global_id(0) == 0)
   {
     printf("7\n\n");
   }
