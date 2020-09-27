@@ -20,9 +20,16 @@ __kernel void sum(__global const unsigned int* a,
     }
 
     barrier(CLK_LOCAL_MEM_FENCE);
+    int local_sum = 0;
+    for (int i = WARP_SIZE; i > 1; i /= 2) {
+        if ((local_index % WARP_SIZE) * 2 < i) {
+            local_a[local_index] += local_a[local_index + i/2];
+        }
+    }
+
+    barrier(CLK_LOCAL_MEM_FENCE);
     if (local_index == 0) {
-        int local_sum = 0;
-        for (int i = 0; i < WORK_GROUP_SIZE; ++i) {
+        for (int i = 0; i < WORK_GROUP_SIZE; i += WARP_SIZE) {
             local_sum += local_a[i];
         }
         atomic_add(sum, local_sum);

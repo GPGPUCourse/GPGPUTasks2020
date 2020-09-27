@@ -65,10 +65,19 @@ __kernel void sum_in_bucket(__global const int* a,
     }
 
     barrier(CLK_LOCAL_MEM_FENCE);
-    if (local_index == 0) {
-        sum[bucket_id] = 0;
-        for (int i = 0; i < WORK_GROUP_SIZE; ++i) {
-            sum[bucket_id] += local_a[i];
+    sum[bucket_id] = 0;
+    for (int i = WARP_SIZE; i > 1; i /= 2) {
+        if ((local_index % WARP_SIZE) * 2 < i) {
+            local_a[local_index] += local_a[local_index + i/2];
         }
+    }
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    if (local_index == 0) {
+         for (int i = WARP_SIZE; i < WORK_GROUP_SIZE; i += WARP_SIZE) {
+             local_a[0] += local_a[i];
+         }
+         sum[bucket_id]  = local_a[0];
     }
 }
