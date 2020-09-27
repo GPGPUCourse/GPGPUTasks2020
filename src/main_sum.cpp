@@ -27,14 +27,11 @@ int main(int argc, char **argv)
     // unsigned int n = 1*1000*1000;
     unsigned int n = 128 * 64 * 32;
     std::vector<unsigned int> as(n);
-    long long res = 0;
     FastRandom r(42);
     for (int i = 0; i < n; ++i) {
         as[i] = (unsigned int) r.next(0, std::numeric_limits<unsigned int>::max() / n);
-        res += as[i];
         reference_sum += as[i];
     }
-    assert(res == reference_sum);
 
     {
         timer t;
