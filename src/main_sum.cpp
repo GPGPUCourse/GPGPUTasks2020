@@ -2,6 +2,11 @@
 #include <libutils/timer.h>
 #include <libutils/fast_random.h>
 
+#include <libgpu/context.h>
+#include <libgpu/shared_device_buffer.h>
+
+#include "cl/sum_cl.h"
+
 
 template<typename T>
 void raiseFail(const T &a, const T &b, std::string message, std::string filename, int line)
@@ -58,7 +63,90 @@ int main(int argc, char **argv)
     }
 
     {
-        // TODO: implement on OpenCL
-        // gpu::Device device = gpu::chooseGPUDevice(argc, argv);
+      // TODO: implement on OpenCL
+      gpu::Device device = gpu::chooseGPUDevice(argc, argv);
+      gpu::Context context;
+      
+      context.init(device.device_id_opencl);
+      context.activate();
+
+      ocl::Kernel kernel(sum_kernel, sum_kernel_length, "sum");
+
+      kernel.compile(true);
+
+      gpu::gpu_mem_32u BuffersArray[3];
+
+      gpu::gpu_mem_32u
+        *BufferSrcFirst{&BuffersArray[0]},
+        *BufferSrc{&BuffersArray[1]},
+        *BufferRes{&BuffersArray[2]};
+
+      const unsigned int WorkGroupSize = 64;
+      const unsigned int BlockSize = 64;
+      const unsigned int GroupBlockSize = WorkGroupSize * BlockSize;
+
+      const unsigned int OptimalCPU = GroupBlockSize;
+
+      unsigned int CurN = n;
+      unsigned int NumberOfGroup = (CurN + GroupBlockSize - 1) / GroupBlockSize;
+
+      BufferSrcFirst->resizeN(n);
+      BufferSrc->resizeN(NumberOfGroup * WorkGroupSize);
+      BufferRes->resizeN(NumberOfGroup * WorkGroupSize);
+
+      BufferSrcFirst->writeN(as.data(), n);
+
+      std::vector<unsigned int> ResArr(OptimalCPU);
+
+      timer t;
+      for (int iter = 0; iter < benchmarkingIters; ++iter)
+      {
+        unsigned int sum = 0;
+
+        CurN = n;
+        NumberOfGroup = (CurN + GroupBlockSize - 1) / GroupBlockSize;
+
+        BufferSrc = &BuffersArray[1];
+        BufferRes = &BuffersArray[2];
+
+        if (CurN > OptimalCPU)
+        {
+          kernel.exec(gpu::WorkSize(WorkGroupSize, NumberOfGroup * WorkGroupSize),
+                      BlockSize, *BufferSrcFirst, *BufferSrc, CurN);
+
+          CurN = NumberOfGroup * WorkGroupSize;
+          NumberOfGroup = (CurN + GroupBlockSize - 1) / GroupBlockSize;
+
+          while (CurN > OptimalCPU)
+          {
+            kernel.exec(gpu::WorkSize(WorkGroupSize, NumberOfGroup * WorkGroupSize),
+                        BlockSize, *BufferSrc, *BufferRes, CurN);
+
+            std::swap(BufferSrc, BufferRes);
+
+            CurN = NumberOfGroup * WorkGroupSize;
+            NumberOfGroup = (CurN + GroupBlockSize - 1) / GroupBlockSize;
+          }
+
+          BufferSrc->readN(ResArr.data(), CurN);
+
+          for (unsigned int i = 0; i < CurN; i++)
+          {
+            sum += ResArr[i];
+          }
+        }
+        else
+        {
+          for (unsigned int i = 0; i < CurN; i++)
+          {
+            sum += as[i];
+          }
+        }
+
+        EXPECT_THE_SAME(reference_sum, sum, "GPU result should be consistent!");
+        t.nextLap();
+      }
+      std::cout << "GPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
+      std::cout << "GPU: " << (n/1000.0/1000.0) / t.lapAvg() << " millions/s" << std::endl;
     }
 }

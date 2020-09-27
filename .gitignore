@@ -1,1 +1,4 @@
 **/*_cl.h
+.vs/
+out/
+CMakeSettings.json
