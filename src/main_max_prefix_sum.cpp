@@ -24,6 +24,18 @@ int main(int argc, char **argv)
     int benchmarkingIters = 10;
     int max_n = (1 << 24);
 
+    gpu::Device device = gpu::chooseGPUDevice(argc, argv);
+    gpu::Context context;
+      
+    context.init(device.device_id_opencl);
+    context.activate();
+
+    ocl::Kernel kernel(max_prefix_sum_kernel, max_prefix_sum_kernel_length, "MaxPrefixSum");
+    ocl::Kernel KernelFirst(max_prefix_sum_kernel, max_prefix_sum_kernel_length, "MaxPrefixSumFirst");
+
+    KernelFirst.compile(false);
+    kernel.compile(false);
+
     for (int n = 2; n <= max_n; n *= 2) {
         std::cout << "______________________________________________" << std::endl;
         int values_range = std::min(1023, std::numeric_limits<int>::max() / n);
@@ -76,17 +88,6 @@ int main(int argc, char **argv)
 
         {
           // TODO: implement on OpenCL
-          gpu::Device device = gpu::chooseGPUDevice(argc, argv);
-          gpu::Context context;
-      
-          context.init(device.device_id_opencl);
-          context.activate();
-
-          ocl::Kernel kernel(max_prefix_sum_kernel, max_prefix_sum_kernel_length, "MaxPrefixSum");
-          ocl::Kernel KernelFirst(max_prefix_sum_kernel, max_prefix_sum_kernel_length, "MaxPrefixSumFirst");
-
-          KernelFirst.compile(false);
-          kernel.compile(false);
 
           gpu::gpu_mem_32i BuffersArray[5];
           gpu::gpu_mem_32u BuffersArrayInd[2];
@@ -116,10 +117,10 @@ int main(int argc, char **argv)
           BufferSrcFirst->writeN(as.data(), n);
 
           for (int i = 1; i < 5; i++)
-            BuffersArray[i].resizeN(/*NumberOfGroup * WorkGroupSize*/n);
+            BuffersArray[i].resizeN(NumberOfGroup * WorkGroupSize * 1.2);
 
           for (int i = 0; i < 2; i++)
-            BuffersArrayInd[i].resizeN(/*NumberOfGroup * WorkGroupSize*/n);
+            BuffersArrayInd[i].resizeN(NumberOfGroup * WorkGroupSize * 1.2);
 
           std::vector<int> ResSumArrCPU(OptimalCPU);
           std::vector<int> ResMaxSumArrCPU(OptimalCPU);
