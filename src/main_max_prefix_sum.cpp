@@ -146,31 +146,17 @@ int main(int argc, char **argv)
 
             if (CurN > OptimalCPU)
             {
-              try
-              {
-                KernelFirst.exec(gpu::WorkSize(WorkGroupSize, NumberOfGroup * WorkGroupSize),
-                                 *BufferSrcFirst, *BufferSumSrc, *BufferMaxSumSrc, *BufferSrcInd, CurN);
-              }
-              catch (...)
-              {
-                throw std::runtime_error(std::string(__FILE__) + " : " + std::to_string(__LINE__));
-              }
+              KernelFirst.exec(gpu::WorkSize(WorkGroupSize, NumberOfGroup * WorkGroupSize),
+                               *BufferSrcFirst, *BufferSumSrc, *BufferMaxSumSrc, *BufferSrcInd, CurN);
 
               CurN = NumberOfGroup * WorkGroupSize;
               NumberOfGroup = (CurN + GroupBlockSize - 1) / GroupBlockSize;
 
               while (CurN > OptimalCPU)
               {
-                try
-                {
-                  kernel.exec(gpu::WorkSize(WorkGroupSize, NumberOfGroup * WorkGroupSize),
-                              *BufferSumSrc, *BufferMaxSumSrc, *BufferSrcInd,
-                              *BufferSumRes, *BufferMaxSumRes, *BufferResInd, CurN, CellSize);
-                }
-                catch (...)
-                {
-                  throw std::runtime_error(std::string(__FILE__) + " : " + std::to_string(__LINE__));
-                }
+                kernel.exec(gpu::WorkSize(WorkGroupSize, NumberOfGroup * WorkGroupSize),
+                            *BufferSumSrc, *BufferMaxSumSrc, *BufferSrcInd,
+                            *BufferSumRes, *BufferMaxSumRes, *BufferResInd, CurN, CellSize);
 
                 std::swap(BufferSumSrc, BufferSumRes);
                 std::swap(BufferMaxSumSrc, BufferMaxSumRes);
