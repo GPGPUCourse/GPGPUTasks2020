@@ -153,7 +153,7 @@ int main(int argc, char **argv)
               }
               catch (...)
               {
-                throw "au";
+                throw std::runtime_error(std::string(__FILE__) + " : " + std::to_string(__LINE__));
               }
 
               CurN = NumberOfGroup * WorkGroupSize;
@@ -169,7 +169,7 @@ int main(int argc, char **argv)
                 }
                 catch (...)
                 {
-                  throw "ou";
+                  throw std::runtime_error(std::string(__FILE__) + " : " + std::to_string(__LINE__));
                 }
 
                 std::swap(BufferSumSrc, BufferSumRes);
