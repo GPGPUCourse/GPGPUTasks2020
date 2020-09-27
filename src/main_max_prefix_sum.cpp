@@ -170,6 +170,11 @@ int main(int argc, char **argv)
                 }
                 catch (...)
                 {
+                  std::cout << n << std::endl;
+                  std::cout << NumberOfGroup << std::endl;
+                  std::cout << CurN << std::endl;
+                  std::cout << CellSize << std::endl;
+                  std::cout << (n + GroupBlockSize - 1) / GroupBlockSize << std::endl;
                   throw std::runtime_error("2");
                 }
 
