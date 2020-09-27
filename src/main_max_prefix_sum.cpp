@@ -51,7 +51,7 @@ void calc_prefix_sum(std::vector<int>& a, unsigned int workGroupSize, ocl::Kerne
 int main(int argc, char **argv)
 {
     int benchmarkingIters = 10;
-    int max_n = (1 << 26);
+    int max_n = (1 << 24);
 
     for (int n = 2; n <= max_n; n *= 2) {
         std::cout << "______________________________________________" << std::endl;
