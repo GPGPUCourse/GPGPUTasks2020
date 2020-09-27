@@ -80,31 +80,46 @@ int main(int argc, char **argv)
             context.init(device.device_id_opencl);
             context.activate();
 
-            ocl::Kernel kernel(max_prefix_sum_kernel, max_prefix_sum_kernel_length, "max_prefix_sum");
+            ocl::Kernel kernel_max_prefix_sum(max_prefix_sum_kernel, max_prefix_sum_kernel_length, "max_prefix_sum");
+            ocl::Kernel kernel_sum_in_bucket(max_prefix_sum_kernel, max_prefix_sum_kernel_length, "sum_in_bucket");
 
             bool printLog = false;
-            kernel.compile(printLog);
+            kernel_max_prefix_sum.compile(printLog);
+            kernel_sum_in_bucket.compile(printLog);
 
             int gpu_sum, gpu_res;
+            unsigned int workGroupSize = 128;
+            unsigned int global_work_size = (n + workGroupSize - 1) / workGroupSize * workGroupSize;
+
+            std::vector<int> bucket_prefix_sum(n/workGroupSize + 2, 0);
 
             gpu::gpu_mem_32i as_gpu;
+            gpu::gpu_mem_32i bucket_sum;
             gpu::gpu_mem_32i max_sum_gpu;
             gpu::gpu_mem_32i res_gpu;
             as_gpu.resizeN(n);
+            bucket_sum.resizeN(n/workGroupSize + 1);
             max_sum_gpu.resizeN(1);
             res_gpu.resizeN(1);
 
             as_gpu.writeN(as.data(), n);
+            bucket_sum.writeN(bucket_prefix_sum.data(), bucket_prefix_sum.size() - 1);
 
             timer t;
             for (int iter = 0; iter < benchmarkingIters; ++iter) {
-                unsigned int workGroupSize = 128;
-                unsigned int global_work_size = (n + workGroupSize - 1) / workGroupSize * workGroupSize;
                 gpu_sum = -100000000;
                 max_sum_gpu.writeN(&gpu_sum, 1);
                 res_gpu.writeN(&gpu_sum, 1);
 
-                kernel.exec(gpu::WorkSize(workGroupSize, global_work_size), as_gpu, max_sum_gpu, res_gpu, n);
+                kernel_sum_in_bucket.exec(gpu::WorkSize(workGroupSize, global_work_size), as_gpu, bucket_sum, n);
+
+                bucket_sum.readN(bucket_prefix_sum.data() + 1, n/workGroupSize + 1);
+                for (int i = 1; i < bucket_prefix_sum.size(); ++i) {
+                    bucket_prefix_sum[i] += bucket_prefix_sum[i - 1];
+                }
+                bucket_sum.writeN(bucket_prefix_sum.data(), n/workGroupSize + 1);
+
+                kernel_max_prefix_sum.exec(gpu::WorkSize(workGroupSize, global_work_size), as_gpu, bucket_sum, max_sum_gpu, res_gpu, n);
 
                 res_gpu.readN(&gpu_res, 1);
                 max_sum_gpu.readN(&gpu_sum, 1);
