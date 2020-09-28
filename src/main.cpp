@@ -161,9 +161,13 @@ int main() {
     {
         unsigned int i = 0;
         OCL_SAFE_CALL(clSetKernelArg(kernel, i++, sizeof(cl_mem), &aBuffer));
+        OCL_SAFE_CALL(errorCode);
         OCL_SAFE_CALL(clSetKernelArg(kernel, i++, sizeof(cl_mem), &bBuffer));
+        OCL_SAFE_CALL(errorCode);
         OCL_SAFE_CALL(clSetKernelArg(kernel, i++, sizeof(cl_mem), &cBuffer));
+        OCL_SAFE_CALL(errorCode);
         OCL_SAFE_CALL(clSetKernelArg(kernel, i++, sizeof(unsigned int), &n));
+        OCL_SAFE_CALL(errorCode);
     }
 
     // TODO 11 Выше увеличьте n с 1000*1000 до 100*1000*1000 (чтобы дальнейшие замеры были ближе к реальности)
@@ -211,6 +215,8 @@ int main() {
         }
     }
 
+    OCL_SAFE_CALL(clReleaseProgram(program));
+    OCL_SAFE_CALL(clReleaseKernel(kernel));
     OCL_SAFE_CALL(clReleaseContext(context));
     OCL_SAFE_CALL(clReleaseCommandQueue(clCommandQueue));
     OCL_SAFE_CALL(clReleaseMemObject(aBuffer));
