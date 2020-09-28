@@ -21,22 +21,24 @@ void Setup( RW_LOCKER *Locker )
   Locker->CurrentWrite = 0;
 }
 
+int GetTicket( RW_LOCKER *Locker )
+{
+  // Получение уникального билета
+  return atomic_add(&Locker->Ticket, 1);
+}
+
 /* Вместо atomic_cmpxchg( ... , (1 << 30), (1 << 30)) можно было использовать atomic_add( ... , 0).
  * (Использование atomic_load условием не разрешено)
  */
 
 void LockReader( RW_LOCKER *Locker )
 {
-  // Получение уникального билета
-  unsigned int CurrentTicket = atomic_add(&Locker->Ticket, 1);
+  unsigned int CurrentTicket = GetTicket(Locker);
 
-  // Ждем пока нам разрешат войти
-  while (CurrentTicket != atomic_cmpxchg(&Locker->CurrentRead, (1 << 30), (1 << 30))) // CurrentRead никогда не будет равен (1 << 30) (А даже если будет, то на его место снова запишется (1 << 30)) <- Это эквивалентно атомарной загрузке CurrentRead
+  // Так как все потоки в 1 warp читают одновременно, наверное, пойдет и так
+  while (CurrentTicket != atomic_cmpxchg(&Locker->CurrentRead, CurrentTicket, CurrentTicket + 1)) // Все захватят блокировку и пойдут читать
   {
   }
-
-  // Увеличиваем CurrentRead <- Следующий читатель (если это читатель) может войти
-  atomic_add(&Locker->CurrentRead, 1);
 }
 
 void UnlockReader( RW_LOCKER *Locker )
@@ -45,17 +47,10 @@ void UnlockReader( RW_LOCKER *Locker )
   atomic_add(&Locker->CurrentWrite, 1);
 }
 
-void LockWriter( RW_LOCKER *Locker )
+int LockWriter( RW_LOCKER *Locker, unsigned int CurrentTicket )
 {
-  // Получение уникального билета
-  unsigned int CurrentTicket = atomic_add(&Locker->Ticket, 1);
-
-  // Ждем пока нам разрешат войти
-  while (CurrentTicket != atomic_cmpxchg(&Locker->CurrentWrite, (1 << 30), (1 << 30))) // CurrentWrite никогда не будет равен (1 << 30) (А даже если будет, то на его место снова запишется (1 << 30)) <- Это эквивалентно атомарной загрузке CurrentWrite
-  {
-  }
-
   // Никого больше не пускаем
+  return CurrentTicket != atomic_cmpxchg(&Locker->CurrentWrite, (1 << 30), (1 << 30));
 }
 
 void UnlockWriter( __local RW_LOCKER *Locker )
@@ -80,11 +75,21 @@ __kernel do_some_work()
 
     for (int iters = 0; iters < 100; ++iters) {      // потоки делают сто итераций
         if (some_random_predicat(get_local_id(0))) { // предикат срабатывает очень редко (например шанс - 0.1%)
-            ...                        // на каждой итерации некоторые потоки
-            LockWriter(&Locker);
-            union(disjoint_set, ...);  // могут захотеть обновить нашу структурку
-            UnlockWriter(&Locker);
-            ...
+          ...                        
+            int CurrentTicket = GetTicket(&Locker);
+            int LockedFlag;
+            do
+            {
+              LockedFlag = LockWriter(&Locker, CurrentTicket);
+
+              if (LockedFlag)
+              {
+                union(disjoint_set, ...);
+                UnlockWriter(&Locker);
+              }
+              
+            } while (!LockedFlag);  // Если LockedFlag то этот поток продолжает крутиться в цикле(ничего не делая), пока остальные не выйдут
+          ...
         }
         ...
         LockReader(&Locker);
