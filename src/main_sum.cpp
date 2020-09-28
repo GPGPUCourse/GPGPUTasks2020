@@ -4,7 +4,7 @@
 
 
 template<typename T>
-void raiseFail(const T &a, const T &b, std::string message, std::string filename, int line)
+void raiseFail(const T &a, const T &b, const std::string& message, const std::string& filename, int line)
 {
     if (a != b) {
         std::cerr << message << " But " << a << " != " << b << ", " << filename << ":" << line << std::endl;
