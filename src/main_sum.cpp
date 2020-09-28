@@ -1,6 +1,10 @@
 #include <libutils/misc.h>
 #include <libutils/timer.h>
 #include <libutils/fast_random.h>
+#include <libgpu/context.h>
+#include <libgpu/shared_device_buffer.h>
+
+#include "cl/sum_cl.h"
 
 
 template<typename T>
@@ -59,6 +63,34 @@ int main(int argc, char **argv)
 
     {
         // TODO: implement on OpenCL
-        // gpu::Device device = gpu::chooseGPUDevice(argc, argv);
+        gpu::Device device = gpu::chooseGPUDevice(argc, argv);
+        gpu::Context context;
+        context.init(device.device_id_opencl);
+        context.activate();
+
+        gpu::gpu_mem_32u arr_mem, result;
+        result.resizeN(1);
+        arr_mem.resizeN(n);
+        arr_mem.writeN(as.data(), n);
+
+        ocl::Kernel sum_k(sum_kernel, sum_kernel_length, "sum_k");
+        sum_k.compile();
+
+        unsigned int workGroupSize = 128;
+        unsigned int global_work_size = (n + workGroupSize - 1) / workGroupSize * workGroupSize;
+
+        timer t;
+        for (int iter = 0; iter < benchmarkingIters; ++iter) {
+            unsigned int tmp = 0;
+            result.writeN(&tmp, 1);
+            sum_k.exec(gpu::WorkSize(workGroupSize, global_work_size), arr_mem, result, n);
+            t.nextLap();
+        }
+        unsigned int sum = 0;
+        result.readN(&sum, 1);
+        EXPECT_THE_SAME(reference_sum, sum, "GPU result should be consistent!");
+
+        std::cout << "GPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
+        std::cout << "GPU: " << (n/1000.0/1000.0) / t.lapAvg() << " millions/s" << std::endl;
     }
 }
