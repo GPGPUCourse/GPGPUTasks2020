@@ -1,19 +1,19 @@
 #include "defines.h"
 
-// Стандартный ticket lock
+// Г‘ГІГ Г­Г¤Г Г°ГІГ­Г»Г© ticket lock
 typedef struct
 {
-  // Билет, который будет выдан при следующей попытке захвата блокировки
+  // ГЃГЁГ«ГҐГІ, ГЄГ®ГІГ®Г°Г»Г© ГЎГіГ¤ГҐГІ ГўГ»Г¤Г Г­ ГЇГ°ГЁ Г±Г«ГҐГ¤ГіГѕГ№ГҐГ© ГЇГ®ГЇГ»ГІГЄГҐ Г§Г ГµГўГ ГІГ  ГЎГ«Г®ГЄГЁГ°Г®ГўГЄГЁ
   unsigned int Ticket;
 
-  // Номер билета читателя, которому разрешено захватить блокировку
+  // ГЌГ®Г¬ГҐГ° ГЎГЁГ«ГҐГІГ  Г·ГЁГІГ ГІГҐГ«Гї, ГЄГ®ГІГ®Г°Г®Г¬Гі Г°Г Г§Г°ГҐГёГҐГ­Г® Г§Г ГµГўГ ГІГЁГІГј ГЎГ«Г®ГЄГЁГ°Г®ГўГЄГі
   unsigned int CurrentRead;
 
-  // Номер билета писателя, которому разрешено захватить блокировку
+  // ГЌГ®Г¬ГҐГ° ГЎГЁГ«ГҐГІГ  ГЇГЁГ±Г ГІГҐГ«Гї, ГЄГ®ГІГ®Г°Г®Г¬Гі Г°Г Г§Г°ГҐГёГҐГ­Г® Г§Г ГµГўГ ГІГЁГІГј ГЎГ«Г®ГЄГЁГ°Г®ГўГЄГі
   unsigned int CurrentWrite;
 } RW_LOCKER;
 
-// Инициализация блокировки
+// Г€Г­ГЁГ¶ГЁГ Г«ГЁГ§Г Г¶ГЁГї ГЎГ«Г®ГЄГЁГ°Г®ГўГЄГЁ
 void Setup( RW_LOCKER *Locker )
 {
   Locker->Ticket = 0;
@@ -23,39 +23,39 @@ void Setup( RW_LOCKER *Locker )
 
 int GetTicket( RW_LOCKER *Locker )
 {
-  // Получение уникального билета
+  // ГЏГ®Г«ГіГ·ГҐГ­ГЁГҐ ГіГ­ГЁГЄГ Г«ГјГ­Г®ГЈГ® ГЎГЁГ«ГҐГІГ 
   return atomic_add(&Locker->Ticket, 1);
 }
 
-/* Вместо atomic_cmpxchg( ... , (1 << 30), (1 << 30)) можно было использовать atomic_add( ... , 0).
- * (Использование atomic_load условием не разрешено)
+/* Г‚Г¬ГҐГ±ГІГ® atomic_cmpxchg( ... , (1 << 30), (1 << 30)) Г¬Г®Г¦Г­Г® ГЎГ»Г«Г® ГЁГ±ГЇГ®Г«ГјГ§Г®ГўГ ГІГј atomic_add( ... , 0).
+ * (Г€Г±ГЇГ®Г«ГјГ§Г®ГўГ Г­ГЁГҐ atomic_load ГіГ±Г«Г®ГўГЁГҐГ¬ Г­ГҐ Г°Г Г§Г°ГҐГёГҐГ­Г®)
  */
 
 void LockReader( RW_LOCKER *Locker )
 {
   unsigned int CurrentTicket = GetTicket(Locker);
 
-  // Так как все потоки в 1 warp читают одновременно, наверное, пойдет и так
-  while (CurrentTicket != atomic_cmpxchg(&Locker->CurrentRead, CurrentTicket, CurrentTicket + 1)) // Все захватят блокировку и пойдут читать
+  // Г’Г ГЄ ГЄГ ГЄ ГўГ±ГҐ ГЇГ®ГІГ®ГЄГЁ Гў 1 warp Г·ГЁГІГ ГѕГІ Г®Г¤Г­Г®ГўГ°ГҐГ¬ГҐГ­Г­Г®, Г­Г ГўГҐГ°Г­Г®ГҐ, ГЇГ®Г©Г¤ГҐГІ ГЁ ГІГ ГЄ
+  while (CurrentTicket != atomic_cmpxchg(&Locker->CurrentRead, CurrentTicket, CurrentTicket + 1)) // Г‚Г±ГҐ Г§Г ГµГўГ ГІГїГІ ГЎГ«Г®ГЄГЁГ°Г®ГўГЄГі ГЁ ГЇГ®Г©Г¤ГіГІ Г·ГЁГІГ ГІГј
   {
   }
 }
 
 void UnlockReader( RW_LOCKER *Locker )
 {
-  // Увеличиваем CurrentWrite <- Следующий писатель (если это писатель) теперь тоже может войти
+  // Г“ГўГҐГ«ГЁГ·ГЁГўГ ГҐГ¬ CurrentWrite <- Г‘Г«ГҐГ¤ГіГѕГ№ГЁГ© ГЇГЁГ±Г ГІГҐГ«Гј (ГҐГ±Г«ГЁ ГЅГІГ® ГЇГЁГ±Г ГІГҐГ«Гј) ГІГҐГЇГҐГ°Гј ГІГ®Г¦ГҐ Г¬Г®Г¦ГҐГІ ГўГ®Г©ГІГЁ
   atomic_add(&Locker->CurrentWrite, 1);
 }
 
 int LockWriter( RW_LOCKER *Locker, unsigned int CurrentTicket )
 {
-  // Никого больше не пускаем
-  return CurrentTicket != atomic_cmpxchg(&Locker->CurrentWrite, (1 << 30), (1 << 30));
+  // ГЌГЁГЄГ®ГЈГ® ГЎГ®Г«ГјГёГҐ Г­ГҐ ГЇГіГ±ГЄГ ГҐГ¬
+  return CurrentTicket == atomic_cmpxchg(&Locker->CurrentWrite, (1 << 30), (1 << 30));
 }
 
 void UnlockWriter( __local RW_LOCKER *Locker )
 {
-  // Пропускаем следующий билет
+  // ГЏГ°Г®ГЇГіГ±ГЄГ ГҐГ¬ Г±Г«ГҐГ¤ГіГѕГ№ГЁГ© ГЎГЁГ«ГҐГІ
   atomic_add(&Locker->CurrentWrite, 1);
   atomic_add(&Locker->CurrentRead, 1);
 }
@@ -67,14 +67,14 @@ __kernel do_some_work()
     volatile __local RW_LOCKER Locker;
 
     if (get_local_id(0) == 0 && get_local_id(1) == 0 && get_local_id(2) == 0)
-      Setup(&Locker); // Вызываем Setup 1 раз
+      Setup(&Locker); // Г‚Г»Г§Г»ГўГ ГҐГ¬ Setup 1 Г°Г Г§
 
-    barrier(CLK_LOCAL_MEM_FENCE); // Гарантия того, что после этой строки Locker проинициализирован
+    barrier(CLK_LOCAL_MEM_FENCE); // ГѓГ Г°Г Г­ГІГЁГї ГІГ®ГЈГ®, Г·ГІГ® ГЇГ®Г±Г«ГҐ ГЅГІГ®Г© Г±ГІГ°Г®ГЄГЁ Locker ГЇГ°Г®ГЁГ­ГЁГ¶ГЁГ Г«ГЁГ§ГЁГ°Г®ГўГ Г­
 
     __local disjoint_set = ...;
 
-    for (int iters = 0; iters < 100; ++iters) {      // потоки делают сто итераций
-        if (some_random_predicat(get_local_id(0))) { // предикат срабатывает очень редко (например шанс - 0.1%)
+    for (int iters = 0; iters < 100; ++iters) {      // ГЇГ®ГІГ®ГЄГЁ Г¤ГҐГ«Г ГѕГІ Г±ГІГ® ГЁГІГҐГ°Г Г¶ГЁГ©
+        if (some_random_predicat(get_local_id(0))) { // ГЇГ°ГҐГ¤ГЁГЄГ ГІ Г±Г°Г ГЎГ ГІГ»ГўГ ГҐГІ Г®Г·ГҐГ­Гј Г°ГҐГ¤ГЄГ® (Г­Г ГЇГ°ГЁГ¬ГҐГ° ГёГ Г­Г± - 0.1%)
           ...                        
             int CurrentTicket = GetTicket(&Locker);
             int LockedFlag;
@@ -88,12 +88,12 @@ __kernel do_some_work()
                 UnlockWriter(&Locker);
               }
               
-            } while (!LockedFlag);  // Если LockedFlag то этот поток продолжает крутиться в цикле(ничего не делая), пока остальные не выйдут
+            } while (!LockedFlag);  // Г…Г±Г«ГЁ LockedFlag ГІГ® ГЅГІГ®ГІ ГЇГ®ГІГ®ГЄ ГЇГ°Г®Г¤Г®Г«Г¦Г ГҐГІ ГЄГ°ГіГІГЁГІГјГ±Гї Гў Г¶ГЁГЄГ«ГҐ(Г­ГЁГ·ГҐГЈГ® Г­ГҐ Г¤ГҐГ«Г Гї), ГЇГ®ГЄГ  Г®Г±ГІГ Г«ГјГ­Г»ГҐ Г­ГҐ ГўГ»Г©Г¤ГіГІ
           ...
         }
         ...
         LockReader(&Locker);
-        tmp = get(disjoint_set, ...); // потоки постоянно хотят читать из структурки
+        tmp = get(disjoint_set, ...); // ГЇГ®ГІГ®ГЄГЁ ГЇГ®Г±ГІГ®ГїГ­Г­Г® ГµГ®ГІГїГІ Г·ГЁГІГ ГІГј ГЁГ§ Г±ГІГ°ГіГЄГІГіГ°ГЄГЁ
         UnlockReader(&Locker);
         ...
     }
