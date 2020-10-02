@@ -131,7 +131,7 @@ int main(int argc, char **argv)
                         res_buffer, width, height,
                         centralX - sizeX / 2.0f, centralY - sizeY / 2.0f,
                         sizeX, sizeY,
-                        iterationsLimit);
+                        iterationsLimit, 0);
             
             t.nextLap();
         }

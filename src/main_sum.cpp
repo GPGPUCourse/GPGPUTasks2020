@@ -2,6 +2,10 @@
 #include <libutils/timer.h>
 #include <libutils/fast_random.h>
 
+#include <libgpu/context.h>
+#include <libgpu/shared_device_buffer.h>
+#include "cl/sum_cl.h"
+
 
 template<typename T>
 void raiseFail(const T &a, const T &b, std::string message, std::string filename, int line)
@@ -58,7 +62,63 @@ int main(int argc, char **argv)
     }
 
     {
-        // TODO: implement on OpenCL
-        // gpu::Device device = gpu::chooseGPUDevice(argc, argv);
+        gpu::Device device = gpu::chooseGPUDevice(argc, argv);
+    
+        gpu::Context context;
+        context.init(device.device_id_opencl);
+        context.activate();
+    
+        unsigned int workGroupSize = 256;
+        unsigned int global_work_size = (n + workGroupSize - 1) / workGroupSize * workGroupSize;
+        
+        std::vector<unsigned int> compl_as(global_work_size, 0);
+        std::copy(as.begin(), as.end(), compl_as.begin());
+        
+        gpu::gpu_mem_32u as_buffer;
+        as_buffer.resizeN(compl_as.size());
+        as_buffer.writeN(compl_as.data(), compl_as.size());
+    
+        unsigned int res;
+        gpu::gpu_mem_32u res_buffer;
+        res_buffer.resizeN(1);
+        
+        std::string defines = "-DWORK_GROUP_SIZE=" + std::to_string(workGroupSize);
+    
+        //NAIVE
+        ocl::Kernel sum_naive(sum_kernel, sum_kernel_length, "sum_naive", defines);
+        sum_naive.compile();
+    
+        timer t;
+        for (int iter = 0; iter < benchmarkingIters; ++iter) {
+            res = 0;
+            res_buffer.writeN(&res, 1);
+            sum_naive.exec(gpu::WorkSize(workGroupSize, global_work_size),
+                           as_buffer, res_buffer, n);
+        
+            res_buffer.readN(&res, 1);
+            EXPECT_THE_SAME(reference_sum, res, "GPU result should be consistent!");
+            t.nextLap();
+        }
+    
+        // TREE
+        std::cout << "GPU naive: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
+        std::cout << "GPU naive: " << (n/1000.0/1000.0) / t.lapAvg() << " millions/s" << std::endl;
+        
+        ocl::Kernel sum_tree(sum_kernel, sum_kernel_length, "sum_tree", defines);
+        sum_tree.compile();
+        
+        for (int iter = 0; iter < benchmarkingIters; ++iter) {
+            res = 0;
+            res_buffer.writeN(&res, 1);
+            sum_tree.exec(gpu::WorkSize(workGroupSize, global_work_size),
+                           as_buffer, res_buffer, n);
+    
+            res_buffer.readN(&res, 1);
+            EXPECT_THE_SAME(reference_sum, res, "GPU result should be consistent!");
+            t.nextLap();
+        }
+        
+        std::cout << "GPU tree: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
+        std::cout << "GPU tree: " << (n/1000.0/1000.0) / t.lapAvg() << " millions/s" << std::endl;
     }
 }
