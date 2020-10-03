@@ -17,7 +17,7 @@ __kernel void max_prefix_sum(__global const int* blocks,
                                 __global int* newMaxSum,
                                 __global int* newIndex,
                                 unsigned int blockSize,
-                                bool needInit, unsigned int n)
+                                unsigned int needInit, unsigned int n)
 {
     __local int localBlocks[RANGE_PER_WORK_ITEM * WORK_GROUP_SIZE];
     __local int localMaxSum[RANGE_PER_WORK_ITEM * WORK_GROUP_SIZE];
@@ -38,7 +38,7 @@ __kernel void max_prefix_sum(__global const int* blocks,
         unsigned int x = get_local_id(0) * RANGE_PER_WORK_ITEM + i;
         if (offset + x >= n)
             break;
-        if (needInit) {
+        if (needInit == 1) {
             if (localBlocks[x] >= 0){
                 localMaxSum[x] = localBlocks[x];
                 localIndex[x] = 1;
@@ -72,7 +72,7 @@ __kernel void max_prefix_sum(__global const int* blocks,
 //         unsigned int x = get_global_id(0) * RANGE_PER_WORK_ITEM + i;
 //         if (x >= n)
 //             break;
-//         if (needInit) {
+//         if (needInit == 1) {
 //             if (blocks[x] >= 0){
 //                 maxSum[x] = blocks[x];
 //                 index[x] = 1;
