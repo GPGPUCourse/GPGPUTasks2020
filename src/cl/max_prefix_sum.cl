@@ -58,6 +58,7 @@ __kernel void max_prefix_sum(__global const int* blocks,
     newIndex[get_global_id(0)] = ind;
 }
 
+
 // __kernel void max_prefix_sum(__global const int* blocks,
 //                                 __global int* maxSum,
 //                                 __global int* index,
