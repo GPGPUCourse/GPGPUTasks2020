@@ -11,10 +11,7 @@
 #include <stdexcept>
 
 
-int main(int argc, char **argv)
-{
-    gpu::Device device = gpu::chooseGPUDevice(argc, argv);
-
+void run(gpu::Device& device, unsigned int tile_size, bool fix_bank) {
     gpu::Context context;
     context.init(device.device_id_opencl);
     context.activate();
@@ -32,28 +29,33 @@ int main(int argc, char **argv)
     }
     std::cout << "Data generated for M=" << M << ", K=" << K << "!" << std::endl;
 
-    /*
     gpu::gpu_mem_32f as_gpu, as_t_gpu;
     as_gpu.resizeN(M*K);
     as_t_gpu.resizeN(K*M);
 
     as_gpu.writeN(as.data(), M*K);
 
-    ocl::Kernel matrix_transpose_kernel(matrix_transpose, matrix_transpose_length, "matrix_transpose");
+    std::string defines = "-D FIX_BANK=" + std::to_string(fix_bank ? 1 : 0) + " -D TILE_SIZE=" + std::to_string(tile_size);
+
+    ocl::Kernel matrix_transpose_kernel(matrix_transpose, matrix_transpose_length, "matrix_transpose", defines);
     matrix_transpose_kernel.compile();
 
     {
         timer t;
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
-            // TODO
-            unsigned int work_group_size = 128;
-            unsigned int global_work_size = ...;
-            matrix_transpose_kernel.exec(gpu::WorkSize(work_group_size, global_work_size), as_gpu, as_t_gpu, M, K);
+            unsigned int x_work_size = K;
+            unsigned int y_work_size = M;
+
+            matrix_transpose_kernel.exec(
+                    gpu::WorkSize(tile_size, tile_size, x_work_size, y_work_size),
+                    as_gpu, as_t_gpu, K, M);
 
             t.nextLap();
         }
+        std::cout << "Params: fix_bank=" + to_string(fix_bank) + ", tile size=" + to_string(tile_size) << std::endl;
         std::cout << "GPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
         std::cout << "GPU: " << M*K/1000.0/1000.0 / t.lapAvg() << " millions/s" << std::endl;
+        std::cout << std::endl;
     }
 
     as_t_gpu.readN(as_t.data(), M*K);
@@ -64,12 +66,26 @@ int main(int argc, char **argv)
             float a = as[j * K + i];
             float b = as_t[i * M + j];
             if (a != b) {
-                std::cerr << "Not the same!" << std::endl;
-                return 1;
+                std::string err = "Not the same! Params: fix_bank=" + to_string(fix_bank) + ", tile size=" + to_string(tile_size);
+                throw std::runtime_error(err);
             }
         }
     }
-    */
+}
+
+int main(int argc, char **argv)
+{
+    gpu::Device device = gpu::chooseGPUDevice(argc, argv);
+
+    try {
+        run(device, 8, false);
+        run(device, 8, true);
+        run(device, 16, false);
+        run(device, 16, true);
+    } catch (const std::runtime_error& e) {
+        std::cerr << e.what();
+        return 1;
+    }
 
     return 0;
 }
