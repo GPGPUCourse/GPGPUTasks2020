@@ -104,7 +104,7 @@ int main(int argc, char **argv)
                                         blocks[id0], maxSum[id0], index[id0], 
                                         blocks[id1], maxSum[id1], index[id1],
                                         blockSize, curIter == 0 ? 1 : 0, curSize);
-                    curSize = (curSize - 1) / rangePerWorkItem;
+                    curSize = (curSize - 1) / rangePerWorkItem + 1;
                     curIter++;
                     blockSize *= rangePerWorkItem;
                 }

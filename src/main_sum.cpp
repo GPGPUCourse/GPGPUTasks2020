@@ -80,7 +80,7 @@ int main(int argc, char **argv)
 
             unsigned int curSize = n, curIter = 0;
             unsigned int workGroupSize = 128;
-            unsigned int rangePerWorkItem = 64;
+            unsigned int rangePerWorkItem = 4;
             while (curSize > workGroupSize){
                 unsigned int globalWorkSize = ((curSize - 1) / workGroupSize + 1) * workGroupSize / rangePerWorkItem;
                 summa.exec(gpu::WorkSize(workGroupSize, globalWorkSize),

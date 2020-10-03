@@ -5,7 +5,7 @@
 #line 6
 
 #define WORK_GROUP_SIZE (128)
-#define RANGE_PER_WORK_ITEM (64)
+#define RANGE_PER_WORK_ITEM (4)
 
 __kernel void summa(__global const unsigned int* a,
                     __global unsigned int* res,
