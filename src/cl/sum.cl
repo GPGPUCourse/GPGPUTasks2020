@@ -27,7 +27,7 @@ __kernel void summa(__global const unsigned int* a,
     for (unsigned int curShift = WORK_GROUP_SIZE / 2; curShift > 0; curShift >>= 1){
         if (localIndex < curShift)
             localSum[localIndex] += localSum[localIndex + curShift];
-        if (localIndex > WARP_SIZE)
+        // if (localIndex > WARP_SIZE)
             barrier(CLK_LOCAL_MEM_FENCE);    
     }
     if (localIndex == 0)
