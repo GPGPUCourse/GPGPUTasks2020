@@ -51,7 +51,7 @@ void calc_prefix_sum(std::vector<int>& a, unsigned int workGroupSize, ocl::Kerne
 int main(int argc, char **argv)
 {
     int benchmarkingIters = 10;
-    int max_n = (1 << 24);
+    int max_n = (1 << 28);
 
     for (int n = 2; n <= max_n; n *= 2) {
         std::cout << "______________________________________________" << std::endl;
@@ -111,6 +111,7 @@ int main(int argc, char **argv)
             context.activate();
 
             ocl::Kernel kernel_max_prefix_sum(max_prefix_sum_kernel, max_prefix_sum_kernel_length, "max_prefix_sum");
+            ocl::Kernel kernel_max_prefix_sum_index(max_prefix_sum_kernel, max_prefix_sum_kernel_length, "max_prefix_sum_index");
             ocl::Kernel kernel_sum_in_bucket(max_prefix_sum_kernel, max_prefix_sum_kernel_length, "sum_in_bucket");
             ocl::Kernel kernel_calc_prefix_sum(max_prefix_sum_kernel, max_prefix_sum_kernel_length, "calc_prefix_sum");
 
@@ -140,8 +141,9 @@ int main(int argc, char **argv)
             timer t;
             for (int iter = 0; iter < benchmarkingIters; ++iter) {
                 gpu_sum = -100000000;
+                gpu_res = n + 1;
                 max_sum_gpu.writeN(&gpu_sum, 1);
-                res_gpu.writeN(&gpu_sum, 1);
+                res_gpu.writeN(&gpu_res, 1);
 
                 kernel_sum_in_bucket.exec(gpu::WorkSize(workGroupSize, global_work_size), as_gpu, bucket_sum, n);
 
@@ -149,10 +151,10 @@ int main(int argc, char **argv)
                 calc_prefix_sum(bucket_prefix_sum, workGroupSize, kernel_sum_in_bucket, kernel_calc_prefix_sum);
                 bucket_sum.writeN(bucket_prefix_sum.data(), n/workGroupSize + 1);
 
-                kernel_max_prefix_sum.exec(gpu::WorkSize(workGroupSize, global_work_size), as_gpu, bucket_sum, max_sum_gpu, res_gpu, n);
-
-                res_gpu.readN(&gpu_res, 1);
+                kernel_max_prefix_sum.exec(gpu::WorkSize(workGroupSize, global_work_size), as_gpu, bucket_sum, max_sum_gpu, n);
                 max_sum_gpu.readN(&gpu_sum, 1);
+                kernel_max_prefix_sum_index.exec(gpu::WorkSize(workGroupSize, global_work_size), as_gpu, bucket_sum, gpu_sum, res_gpu, n);
+                res_gpu.readN(&gpu_res, 1);
 
                 EXPECT_THE_SAME(reference_max_sum, gpu_sum, "GPU result should be consistent!");
                 EXPECT_THE_SAME(reference_result, gpu_res, "GPU result should be consistent!");
