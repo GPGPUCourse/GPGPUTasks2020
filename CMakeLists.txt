@@ -25,7 +25,7 @@ target_link_libraries(aplusb libclew libgpu libutils)
 
 # Аналогично для фрактала Мандельброта
 convertIntoHeader(src/cl/mandelbrot.cl src/cl/mandelbrot_cl.h mandelbrot_kernel)
-add_executable(mandelbrot src/main_mandelbrot.cpp src/cl/mandelbrot_cl.h)
+add_executable(mandelbrot src/main_mandelbrot.cpp src/cl/mandelbrot_cl.h src/cl/mandelbrot.cl)
 target_link_libraries(mandelbrot libclew libgpu libimages libutils)
 
 # Для вычисления суммы
