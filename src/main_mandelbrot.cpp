@@ -111,7 +111,6 @@ int main(int argc, char **argv)
     context.activate();
     gpu::gpu_mem_32f gpu_results_buffer;
     gpu_results_buffer.resizeN(width * height);
-    gpu_results_buffer.writeN(gpu_results.ptr(), width * height);
 
     {
         ocl::Kernel kernel(mandelbrot_kernel, mandelbrot_kernel_length, "mandelbrot");
@@ -153,6 +152,7 @@ int main(int argc, char **argv)
         }
         std::cout << "    Real iterations fraction: " << 100.0 * realIterationsFraction / (width * height) << "%" << std::endl;
 
+        gpu_results_buffer.readN(gpu_results.ptr(), width * height);
         renderToColor(gpu_results.ptr(), image.ptr(), width, height);
         image.savePNG("mandelbrot_cpu2.png");
     }
