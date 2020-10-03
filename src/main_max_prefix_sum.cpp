@@ -18,12 +18,6 @@ void raiseFail(const T &a, const T &b, std::string message, std::string filename
 
 #define EXPECT_THE_SAME(a, b, message) raiseFail(a, b, message, __FILE__, __LINE__)
 
-struct Block{
-    unsigned int SumBlock;
-    unsigned int MaxElem;
-    unsigned int Index;
-};
-
 int main(int argc, char **argv)
 {
     int benchmarkingIters = 10;

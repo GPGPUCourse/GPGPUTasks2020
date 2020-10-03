@@ -80,9 +80,8 @@ int main(int argc, char **argv)
 
             unsigned int curSize = n, curIter = 0;
             unsigned int workGroupSize = 128;
-            unsigned int defaultRangePerWorkItem = 64;
+            unsigned int rangePerWorkItem = 64;
             while (curSize > workGroupSize){
-                unsigned int rangePerWorkItem = std::min(curSize / workGroupSize, defaultRangePerWorkItem);
                 unsigned int globalWorkSize = (curSize + workGroupSize - 1) / workGroupSize * workGroupSize / rangePerWorkItem;
                 summa.exec(gpu::WorkSize(workGroupSize, globalWorkSize),
                                         res[curIter & 1], res[(curIter & 1) ^ 1], curSize);

@@ -73,8 +73,7 @@ int main(int argc, char **argv)
     aplusb.compile();
 
     unsigned int workGroupSize = 128;
-    unsigned int rangePerWorkItem = 64;
-    unsigned int global_work_size = (n + workGroupSize - 1) / workGroupSize * workGroupSize / rangePerWorkItem;
+    unsigned int global_work_size = (n + workGroupSize - 1) / workGroupSize * workGroupSize;
     aplusb.exec(gpu::WorkSize(workGroupSize, global_work_size),
                 as_gpu, bs_gpu, cs_gpu, n);
 
