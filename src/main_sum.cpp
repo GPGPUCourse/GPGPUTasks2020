@@ -24,8 +24,8 @@ int main(int argc, char **argv)
     int benchmarkingIters = 10;
 
     unsigned int reference_sum = 0;
-    // unsigned int n = 1*1000*1000;
-    unsigned int n = 128 * 64 * 32;
+    unsigned int n = 100*1000*1000;
+    // unsigned int n = 128 * 64 * 32;
     std::vector<unsigned int> as(n);
     FastRandom r(42);
     for (int i = 0; i < n; ++i) {
@@ -70,26 +70,34 @@ int main(int argc, char **argv)
      
         timer t;
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
-            gpu::gpu_mem_32u gpuA;
-            gpuA.resizeN(n);
-            gpuA.writeN(as.data(), n);
+            gpu::gpu_mem_32u res[2];
+            res[0].resizeN(n);
+            res[1].resizeN(n);
+            res[0].writeN(as.data(), n);
 
             ocl::Kernel summa(sum_kernel, sum_kernel_length, "summa");
             summa.compile();
 
-            unsigned int res = 0;
-            gpu::gpu_mem_32u gpuRes;
-            gpuRes.resizeN(1);
-            gpuRes.writeN(&res, 1);
+            unsigned int curSize = n, curIter = 0;
             unsigned int workGroupSize = 128;
-            unsigned int rangePerWorkItem = 64;
-            unsigned int globalWorkSize = (n + workGroupSize - 1) / workGroupSize * workGroupSize / rangePerWorkItem;
+            unsigned int defaultRangePerWorkItem = 64;
+            while (curSize > workGroupSize){
+                unsigned int rangePerWorkItem = std::min(curSize / workGroupSize, defaultRangePerWorkItem);
+                unsigned int globalWorkSize = (curSize + workGroupSize - 1) / workGroupSize * workGroupSize / rangePerWorkItem;
+                summa.exec(gpu::WorkSize(workGroupSize, globalWorkSize),
+                                        res[curIter & 1], res[(curIter & 1) ^ 1], curSize);
+                curSize = (curSize - 1) / workGroupSize / rangePerWorkItem + 1;
+                curIter++;
+            }
+            
+            std::vector<unsigned int> kek(curSize);
+            res[curIter & 1].readN(kek.data(), curSize);
 
-            summa.exec(gpu::WorkSize(workGroupSize, globalWorkSize), gpuA, gpuRes, n);
+            unsigned int ans = 0;
+            for (int i = 0; i < curSize; i++)
+                ans += kek[i];
 
-            gpuRes.readN(&res, 1);
-            EXPECT_THE_SAME(reference_sum, res, "OpenCL result should be consistent!");
-            break;
+            EXPECT_THE_SAME(reference_sum, ans, "OpenCL result should be consistent!");
             t.nextLap();
         }
         std::cout << "OpenCL: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
