@@ -30,7 +30,7 @@ target_link_libraries(mandelbrot libclew libgpu libimages libutils)
 
 # Для вычисления суммы
 convertIntoHeader(src/cl/sum.cl src/cl/sum_cl.h sum_kernel)
-add_executable(sum src/main_sum.cpp src/cl/sum_cl.h)
+add_executable(sum src/main_sum.cpp src/cl/sum_cl.h src/cl/sum.cl)
 target_link_libraries(sum libclew libgpu libutils)
 
 # Для вычисления максимального по сумме префикса
