@@ -38,6 +38,7 @@ __kernel void matrix_multiplication(__global const float* as,
             b[local_j][local_i] = 0;
         }
 
+        // wait until every thread loads data
         barrier(CLK_LOCAL_MEM_FENCE);
 
         // we should take (x, local_j) from a
@@ -45,6 +46,9 @@ __kernel void matrix_multiplication(__global const float* as,
         for (size_t idx = 0; idx < TILE_SIZE; ++idx) {
             tile[local_j][local_i] += a[local_j][idx] * b[idx][local_i];
         }
+
+        // wait until every thread multiply its items
+        barrier(CLK_LOCAL_MEM_FENCE);
     }
 
     // cs tile coords are (tile_i, tile_j)
