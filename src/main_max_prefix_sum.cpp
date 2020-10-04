@@ -20,10 +20,10 @@ void raiseFail(const T &a, const T &b, std::string message, std::string filename
 
 int main(int argc, char **argv)
 {
-    int benchmarkingIters = 1;
+    int benchmarkingIters = 10;
     int max_n = (1 << 24);
 
-    for (int n = max_n; n <= max_n; n *= 2) {
+    for (int n = 2; n <= max_n; n *= 2) {
         std::cout << "______________________________________________" << std::endl;
         int values_range = std::min(1023, std::numeric_limits<int>::max() / n);
         std::cout << "n=" << n << " values in range: [" << (-values_range) << "; " << values_range << "]" << std::endl;
