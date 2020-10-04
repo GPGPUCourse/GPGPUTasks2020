@@ -1,5 +1,9 @@
+#ifdef __CLION_IDE__
+#include <libgpu/opencl/cl/clion_defines.cl>
+#endif
+
+#line 6
 #define WORK_GROUP_SIZE 128
-#line 3
 __kernel void sum(__global const unsigned int* numbers,
                   __global unsigned int* res,
                   unsigned int n)

@@ -157,7 +157,7 @@ int main(int argc, char **argv)
         image.savePNG("mandelbrot_cpu2.png");
     }
 
-   /* {
+    {
         double errorAvg = 0.0;
         for (int j = 0; j < height; ++j) {
             for (int i = 0; i < width; ++i) {
@@ -171,7 +171,7 @@ int main(int argc, char **argv)
             throw std::runtime_error("Too high difference between CPU and GPU results!");
         }
     }
-*/
+
     // Это бонус в виде интерактивной отрисовки, не забудьте запустить на ГПУ, чтобы посмотреть, в какой момент числа итераций/точности single float перестанет хватать
     // Кликами мышки можно смещать ракурс
     // Но в Pull-request эти две строки должны быть закомментированы, т.к. на автоматическом тестировании нет оконной подсистемы 
