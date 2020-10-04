@@ -32,7 +32,6 @@ int main(int argc, char **argv)
     }
     std::cout << "Data generated for M=" << M << ", K=" << K << "!" << std::endl;
 
-    /*
     gpu::gpu_mem_32f as_gpu, as_t_gpu;
     as_gpu.resizeN(M*K);
     as_t_gpu.resizeN(K*M);
@@ -45,10 +44,8 @@ int main(int argc, char **argv)
     {
         timer t;
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
-            // TODO
-            unsigned int work_group_size = 128;
-            unsigned int global_work_size = ...;
-            matrix_transpose_kernel.exec(gpu::WorkSize(work_group_size, global_work_size), as_gpu, as_t_gpu, M, K);
+            unsigned int work_group_size = 16;
+            matrix_transpose_kernel.exec(gpu::WorkSize(work_group_size, work_group_size, K, M), as_gpu, as_t_gpu, M, K);
 
             t.nextLap();
         }
@@ -63,13 +60,13 @@ int main(int argc, char **argv)
         for (int i = 0; i < K; ++i) {
             float a = as[j * K + i];
             float b = as_t[i * M + j];
+
             if (a != b) {
-                std::cerr << "Not the same!" << std::endl;
+                std::cout << "Not the same!" << " a=" << a << "; b=" << b << std::endl;
                 return 1;
             }
         }
     }
-    */
 
     return 0;
 }
