@@ -42,7 +42,7 @@ int main(int argc, char **argv)
     context.init(device.device_id_opencl);
     context.activate();
 
-    unsigned int n = 50*1000*1000;
+    unsigned int n = 100*1000*1000;
     std::vector<float> as(n, 0);
     std::vector<float> bs(n, 0);
     std::vector<float> cs(n, 0);
