@@ -106,13 +106,19 @@ int main(int argc, char **argv)
             std::vector<int> range(global_work_size);
             for (int i = 0; i < global_work_size; i++) range[i] = i + 1;
     
-            
-            
-            timer t;
-            for (int iter = 0; iter < benchmarkingIters; iter++) {
+            if (benchmarkingIters == 1) {
                 in_sum_buf.writeN(as.data(), global_work_size);
                 in_prefix_buf.writeN(as.data(), global_work_size);
                 in_pid_buf.writeN(range.data(), global_work_size);
+            }
+            
+            timer t;
+            for (int iter = 0; iter < benchmarkingIters; iter++) {
+                if (benchmarkingIters != 1) {
+                    in_sum_buf.writeN(as.data(), global_work_size);
+                    in_prefix_buf.writeN(as.data(), global_work_size);
+                    in_pid_buf.writeN(range.data(), global_work_size);
+                }
                 
                 gpu::gpu_mem_32i * p_in_sum = &in_sum_buf;
                 gpu::gpu_mem_32i * p_out_sum = &out_sum_buf;
