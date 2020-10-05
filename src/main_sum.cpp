@@ -18,12 +18,13 @@ void raiseFail(const T &a, const T &b, std::string message, std::string filename
 
 #define EXPECT_THE_SAME(a, b, message) raiseFail(a, b, message, __FILE__, __LINE__)
 
+
 int main(int argc, char **argv)
 {
     int benchmarkingIters = 10;
 
     unsigned int reference_sum = 0;
-    unsigned int n = 100 * 1000 * 1000;
+    unsigned int n = 100*1000*1000;
     std::vector<unsigned int> as(n, 0);
     FastRandom r(42);
     for (int i = 0; i < n; ++i) {
@@ -59,6 +60,7 @@ int main(int argc, char **argv)
         std::cout << "CPU OMP: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
         std::cout << "CPU OMP: " << (n/1000.0/1000.0) / t.lapAvg() << " millions/s" << std::endl;
     }
+
     {
         // TODO: implement on OpenCL
         // gpu::Device device = gpu::chooseGPUDevice(argc, argv);
@@ -104,5 +106,3 @@ int main(int argc, char **argv)
         std::cout << "GPU:    " << (n / 1000.0 / 1000.0) / t.lapAvg() << " millions/s" << std::endl;
     }
 }
-
-
