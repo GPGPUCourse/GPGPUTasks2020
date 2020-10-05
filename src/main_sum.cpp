@@ -70,7 +70,6 @@ int main(int argc, char **argv)
         gpu::Context context;
         context.init(device.device_id_opencl);
         context.activate();
-//    std::string name = "sumAtomic";
         std::string name = "fastSum";
         ocl::Kernel kernel(sum_kernel, sum_kernel_length, name);
         kernel.compile(true);

@@ -28,7 +28,7 @@ __kernel void fastSum(__global const unsigned int *xs,
                       __global unsigned int *res) {
 
     const unsigned int localId = get_local_id(0);
-    const unsigned int groupId = get_group_id(0);
+    const unsigned int globalId = get_group_id(0);
     __local unsigned int local_xs[WORK_GROUP_SIZE];
     local_xs[localId] = 0;
 
