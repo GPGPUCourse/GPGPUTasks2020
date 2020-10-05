@@ -3,6 +3,11 @@
 #include <libutils/fast_random.h>
 
 
+#include <libgpu/context.h>
+#include <libgpu/shared_device_buffer.h>
+
+#include "cl/max_prefix_sum_cl.h"
+
 template<typename T>
 void raiseFail(const T &a, const T &b, std::string message, std::string filename, int line)
 {
@@ -17,8 +22,8 @@ void raiseFail(const T &a, const T &b, std::string message, std::string filename
 
 int main(int argc, char **argv)
 {
-    int benchmarkingIters = 10;
-    int max_n = (1 << 24);
+    int benchmarkingIters = 1;
+    int max_n = (1 << 13);
 
     for (int n = 2; n <= max_n; n *= 2) {
         std::cout << "______________________________________________" << std::endl;
@@ -28,11 +33,14 @@ int main(int argc, char **argv)
         std::vector<int> as(n, 0);
         FastRandom r(n);
         for (int i = 0; i < n; ++i) {
-            as[i] = (unsigned int) r.next(-values_range, values_range);
+            as[i] = (unsigned int) r.next(/*-values_range*/1, values_range);
         }
-
-        int reference_max_sum;
-        int reference_result;
+//        for (int i = 0; i < n; ++i) {
+//            std::cout << as[i] << " ";
+//            std::cout << std::endl;
+//        }
+        int reference_max_sum = -1;
+        int reference_result = -1;
         {
             int max_sum = 0;
             int sum = 0;
@@ -72,6 +80,49 @@ int main(int argc, char **argv)
 
         {
             // TODO: implement on OpenCL
+
+            gpu::Device device = gpu::chooseGPUDevice(argc, argv);
+
+            gpu::Context context;
+            context.init(device.device_id_opencl);
+            context.activate();
+
+            std::string name = "getSums";
+            ocl::Kernel kernel(max_prefix_sum_kernel, max_prefix_sum_kernel_length, name);
+            kernel.compile(true);
+
+            unsigned int workGroupSize = 128;
+
+
+            gpu::WorkSize workSize = gpu::WorkSize(workGroupSize, 1);
+
+            gpu::gpu_mem_32i as_gpu, sums_gpu;
+
+            as_gpu.resizeN(n);
+            as_gpu.writeN(as.data(), as.size());
+
+            sums_gpu.resizeN(n);
+
+            timer t;
+            for (int iter = 0; iter < 1; ++iter) {
+
+                std::vector<int> sums(n, 0);
+                sums_gpu.writeN(sums.data(), n);
+
+                kernel.exec(workSize, as_gpu, n, sums_gpu);
+
+                sums_gpu.readN(sums.data(), n);
+
+                int total_sum = - (1 << 24);
+                for (int i = 0; i < n; ++i) {
+                    if (total_sum < sums[i]) {
+                        total_sum = sums[i];
+                    }
+                }
+                EXPECT_THE_SAME(reference_max_sum, total_sum, "GPU OpenCL result should be consistent!");
+                t.nextLap();
+            }
         }
+        std::cout << "done" << std::endl;
     }
 }

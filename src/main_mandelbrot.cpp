@@ -112,7 +112,6 @@ int main(int argc, char **argv)
     }
 
     {
-
         gpu::gpu_mem_32f results_vram;
         results_vram.resizeN(width * height);
         ocl::Kernel kernel(mandelbrot_kernel, mandelbrot_kernel_length, "mandelbrot");
@@ -140,7 +139,7 @@ int main(int argc, char **argv)
 
         size_t flopsInLoop = 10;
         size_t maxApproximateFlops = width * height * iterationsLimit * flopsInLoop;
-        size_t gflops = 1000 * 1000 * 1000;
+        size_t gflops = 1000*1000*1000;
         std::cout << "GPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
         std::cout << "GPU: " << maxApproximateFlops / gflops / t.lapAvg() << " GFlops" << std::endl;
 
@@ -152,8 +151,7 @@ int main(int argc, char **argv)
                 realIterationsFraction += gpu_results.ptr()[j * width + i];
             }
         }
-        std::cout << "    Real iterations fraction: " << 100.0 * realIterationsFraction / (width * height) << "%"
-                  << std::endl;
+        std::cout << "    Real iterations fraction: " << 100.0 * realIterationsFraction / (width * height) << "%" << std::endl;
 
         renderToColor(gpu_results.ptr(), image.ptr(), width, height);
         image.savePNG("mandelbrot_gpu.png");
