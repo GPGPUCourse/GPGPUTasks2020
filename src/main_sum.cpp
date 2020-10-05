@@ -1,7 +1,14 @@
 #include <libutils/misc.h>
 #include <libutils/timer.h>
 #include <libutils/fast_random.h>
+#include <libgpu/context.h>
+#include <libgpu/shared_device_buffer.h>
 
+#include "cl/sum_cl.h"
+
+#include <vector>
+#include <iostream>
+#include <stdexcept>
 
 template<typename T>
 void raiseFail(const T &a, const T &b, std::string message, std::string filename, int line)
@@ -58,7 +65,42 @@ int main(int argc, char **argv)
     }
 
     {
-        // TODO: implement on OpenCL
-        // gpu::Device device = gpu::chooseGPUDevice(argc, argv);
+        gpu::Device device = gpu::chooseGPUDevice(argc, argv);
+
+        gpu::Context context;
+        context.init(device.device_id_opencl);
+        context.activate();
+        {
+            // Create and compile kernel
+            ocl::Kernel sum(sum_kernel, sum_kernel_length, "sum");
+            sum.compile();
+
+            // Set-up GPU memory buffer
+            gpu::gpu_mem_32u gpu_sum_buffer;
+            gpu_sum_buffer.resizeN(n);
+            gpu_sum_buffer.writeN(as.data(), n);
+
+            gpu::gpu_mem_32u gpu_sum_result;
+            gpu_sum_result.resizeN(1);
+
+            // Set-up NDRange
+            const unsigned int workGroupSize = 128;
+            const unsigned int global_work_size = (n + workGroupSize - 1) / workGroupSize * workGroupSize;
+
+            // Kernel runs
+            timer t;
+            for (int i = 0; i < benchmarkingIters; ++i) {
+                unsigned int sum_value = 0;
+                gpu_sum_result.writeN(&sum_value, 1);
+                sum.exec(gpu::WorkSize(workGroupSize, global_work_size),
+                         gpu_sum_buffer, n, gpu_sum_result);
+
+                gpu_sum_result.readN(&sum_value, 1);
+                EXPECT_THE_SAME(reference_sum, sum_value, "GPU result should be consistent!");
+                t.nextLap();
+            }
+            std::cout << "GPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
+            std::cout << "GPU: " << (n/1000.0/1000.0) / t.lapAvg() << " millions/s" << std::endl;
+        }
     }
 }
