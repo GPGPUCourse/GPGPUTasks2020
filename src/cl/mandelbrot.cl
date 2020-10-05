@@ -8,6 +8,7 @@ __kernel void mandelbrot(__global float* res, unsigned int width, unsigned int h
                          float fromX, float fromY, float sizeX, float sizeY,
                          unsigned int max_iterations, unsigned int smoothing)
 {
+<<<<<<< HEAD
     const float threshold = 256.0f;
     const float threshold2 = threshold * threshold;
 
@@ -32,8 +33,8 @@ __kernel void mandelbrot(__global float* res, unsigned int width, unsigned int h
     float result = iter;
     result = 1.0f * result / max_iterations;
     res[j * width + i] = result;
-    // TODO если хочется избавиться от зернистости и дрожжания при интерактивном погружении - добавьте anti-aliasing:
-    // грубо говоря при anti-aliasing уровня N вам нужно рассчитать не одно значение в центре пикселя, а N*N значений
+    // TODO если хочется избавиться от зернистости и дрожания при интерактивном погружении, добавьте anti-aliasing:
+    // грубо говоря, при anti-aliasing уровня N вам нужно рассчитать не одно значение в центре пикселя, а N*N значений
     // в узлах регулярной решетки внутри пикселя, а затем посчитав среднее значение результатов - взять его за результат для всего пикселя
     // это увеличит число операций в N*N раз, поэтому при рассчетах гигаплопс антиальясинг должен быть выключен
 }

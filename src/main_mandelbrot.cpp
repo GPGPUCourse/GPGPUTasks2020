@@ -106,8 +106,6 @@ int main(int argc, char **argv)
     }
 
 
-    // Раскомментируйте это:
-
     gpu::Context context;
     context.init(device.device_id_opencl);
     context.activate();
@@ -175,9 +173,6 @@ int main(int argc, char **argv)
         }
     }
 
-//     Это бонус ввиде интерактивной отрисовки, не забудьте запустить на ГПУ чтобы посмотреть в какой момент числа итераций/точности single float перестанет хватать
-//     Кликами мышки можно смещать ракурс
-//     Но в Pull-request эти две строки должны быть закомментированы, т.к. на автоматическом тестировании нет оконной подсистемы
 //    bool useGPU = true;
 //    renderInWindow(centralX, centralY, iterationsLimit, useGPU);
 
