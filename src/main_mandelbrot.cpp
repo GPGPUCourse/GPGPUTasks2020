@@ -82,6 +82,36 @@ int main(int argc, char **argv) {
     context.activate();
 
     {
+        timer t;
+        for (int i = 0; i < benchmarkingIters; ++i) {
+            mandelbrotCPU(cpu_results.ptr(),
+                          width, height,
+                          centralX - sizeX / 2.0f, centralY - sizeY / 2.0f,
+                          sizeX, sizeY,
+                          iterationsLimit, false);
+            t.nextLap();
+        }
+        size_t flopsInLoop = 10;
+        size_t maxApproximateFlops = width * height * iterationsLimit * flopsInLoop;
+        size_t gflops = 1000 * 1000 * 1000;
+        std::cout << "CPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
+        std::cout << "CPU: " << maxApproximateFlops / gflops / t.lapAvg() << " GFlops" << std::endl;
+
+        double realIterationsFraction = 0.0;
+        for (int j = 0; j < height; ++j) {
+            for (int i = 0; i < width; ++i) {
+                realIterationsFraction += cpu_results.ptr()[j * width + i];
+            }
+        }
+        std::cout << "    Real iterations fraction: " << 100.0 * realIterationsFraction / (width * height) << "%"
+                  << std::endl;
+
+        renderToColor(cpu_results.ptr(), image.ptr(), width, height);
+        image.savePNG("mandelbrot_cpu.png");
+
+    }
+
+    {
 
         gpu::gpu_mem_32f results_vram;
         results_vram.resizeN(width * height);
@@ -127,38 +157,6 @@ int main(int argc, char **argv) {
 
         renderToColor(gpu_results.ptr(), image.ptr(), width, height);
         image.savePNG("mandelbrot_gpu.png");
-
-        std::cout << "image saved for gpu " << std::endl;
-    }
-
-
-    {
-        timer t;
-        for (int i = 0; i < benchmarkingIters; ++i) {
-            mandelbrotCPU(cpu_results.ptr(),
-                          width, height,
-                          centralX - sizeX / 2.0f, centralY - sizeY / 2.0f,
-                          sizeX, sizeY,
-                          iterationsLimit, false);
-            t.nextLap();
-        }
-        size_t flopsInLoop = 10;
-        size_t maxApproximateFlops = width * height * iterationsLimit * flopsInLoop;
-        size_t gflops = 1000 * 1000 * 1000;
-        std::cout << "CPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
-        std::cout << "CPU: " << maxApproximateFlops / gflops / t.lapAvg() << " GFlops" << std::endl;
-
-        double realIterationsFraction = 0.0;
-        for (int j = 0; j < height; ++j) {
-            for (int i = 0; i < width; ++i) {
-                realIterationsFraction += cpu_results.ptr()[j * width + i];
-            }
-        }
-        std::cout << "    Real iterations fraction: " << 100.0 * realIterationsFraction / (width * height) << "%"
-                  << std::endl;
-
-        renderToColor(cpu_results.ptr(), image.ptr(), width, height);
-        image.savePNG("mandelbrot_cpu.png");
 
         std::cout << "image saved for gpu " << std::endl;
     }
