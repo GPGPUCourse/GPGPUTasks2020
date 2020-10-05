@@ -6,19 +6,19 @@
 #include <libgpu/shared_device_buffer.h>
 #include <libimages/images.h>
 
-
 #include "cl/mandelbrot_cl.h"
 
 
-void mandelbrotCPU(float *results,
+void mandelbrotCPU(float* results,
                    unsigned int width, unsigned int height,
                    float fromX, float fromY,
                    float sizeX, float sizeY,
-                   unsigned int iters, bool smoothing) {
+                   unsigned int iters, bool smoothing)
+{
     const float threshold = 256.0f;
     const float threshold2 = threshold * threshold;
 
-#pragma omp parallel for
+    #pragma omp parallel for
     for (int j = 0; j < height; ++j) {
         for (int i = 0; i < width; ++i) {
             float x0 = fromX + (i + 0.5f) * sizeX / width;
@@ -36,7 +36,6 @@ void mandelbrotCPU(float *results,
                     break;
                 }
             }
-
             float result = iter;
             if (smoothing && iter != iters) {
                 result = result - logf(logf(sqrtf(x * x + y * y)) / logf(threshold)) / logf(2.0f);
@@ -48,12 +47,13 @@ void mandelbrotCPU(float *results,
     }
 }
 
-void renderToColor(const float *results, unsigned char *img_rgb, unsigned int width, unsigned int height);
+void renderToColor(const float* results, unsigned char* img_rgb, unsigned int width, unsigned int height);
 
 void renderInWindow(float centralX, float centralY, unsigned int iterationsLimit, bool useGPU);
 
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     gpu::Device device = gpu::chooseGPUDevice(argc, argv);
 
     unsigned int benchmarkingIters = 10;
@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
     unsigned int width = 2048;
     unsigned int height = 2048;
     unsigned int iterationsLimit = 256;
-//
+
     float centralX = -0.789136f;
     float centralY = -0.150316f;
     float sizeX = 0.00239f;
@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
         }
         size_t flopsInLoop = 10;
         size_t maxApproximateFlops = width * height * iterationsLimit * flopsInLoop;
-        size_t gflops = 1000 * 1000 * 1000;
+        size_t gflops = 1000*1000*1000;
         std::cout << "CPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
         std::cout << "CPU: " << maxApproximateFlops / gflops / t.lapAvg() << " GFlops" << std::endl;
 
@@ -186,7 +186,8 @@ int main(int argc, char **argv) {
     return 0;
 }
 
-void renderInWindow(float centralX, float centralY, unsigned int iterationsLimit, bool useGPU) {
+void renderInWindow(float centralX, float centralY, unsigned int iterationsLimit, bool useGPU)
+{
     images::ImageWindow window("Mandelbrot");
 
     unsigned int width = 1024;
@@ -229,7 +230,7 @@ void renderInWindow(float centralX, float centralY, unsigned int iterationsLimit
         if (window.getMouseClick() == MOUSE_LEFT) {
             centralX = centralX - sizeX * 0.5f + sizeX * window.getMouseX() / width;
             centralY = centralY - sizeY * 0.5f + sizeY * window.getMouseY() / height;
-            std::cout << "Focus: " << centralX << " " << centralY << " " << sizeX << std::endl;
+            std::cout << "Focus: " << centralX << " " << centralY  << " " << sizeX << std::endl;
         }
         if (window.isResized()) {
             window.resize();
@@ -255,9 +256,7 @@ void renderInWindow(float centralX, float centralY, unsigned int iterationsLimit
 struct vec3f {
     vec3f(float x, float y, float z) : x(x), y(y), z(z) {}
 
-    float x;
-    float y;
-    float z;
+    float x; float y; float z;
 };
 
 vec3f operator+(const vec3f &a, const vec3f &b) {
@@ -284,9 +283,10 @@ vec3f cos(const vec3f &a) {
     return {cosf(a.x), cosf(a.y), cosf(a.z)};
 }
 
-void renderToColor(const float *results, unsigned char *img_rgb,
-                   unsigned int width, unsigned int height) {
-#pragma omp parallel for
+void renderToColor(const float* results, unsigned char* img_rgb,
+             unsigned int width, unsigned int height)
+{
+    #pragma omp parallel for
     for (int j = 0; j < height; ++j) {
         for (int i = 0; i < width; ++i) {
             // Палитра взята отсюда: http://iquilezles.org/www/articles/palettes/palettes.htm
@@ -295,7 +295,7 @@ void renderToColor(const float *results, unsigned char *img_rgb,
             vec3f b(0.5, 0.5, 0.5);
             vec3f c(1.0, 0.7, 0.4);
             vec3f d(0.00, 0.15, 0.20);
-            vec3f color = a + b * cos(2 * 3.14f * (c * t + d));
+            vec3f color = a + b * cos(2*3.14f*(c*t+d));
             img_rgb[j * 3 * width + i * 3 + 0] = (unsigned char) (color.x * 255);
             img_rgb[j * 3 * width + i * 3 + 1] = (unsigned char) (color.y * 255);
             img_rgb[j * 3 * width + i * 3 + 2] = (unsigned char) (color.z * 255);

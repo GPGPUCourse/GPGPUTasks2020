@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // TODO
 #define WORK_GROUP_SIZE 128
 #define PER_ITEM 32
