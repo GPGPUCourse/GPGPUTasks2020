@@ -1,5 +1,4 @@
 #ifdef __CLION_IDE__
-
 #include <libgpu/opencl/cl/clion_defines.cl>
 
 #endif
@@ -7,17 +6,15 @@
 #line 6
 
 __kernel void mandelbrot(__global float *results,
-                         unsigned int width, unsigned int height,
-                         float fromX, float fromY,
-                         float sizeX, float sizeY,
-                         unsigned int iters, unsigned int smoothing)
+        unsigned int width,
+        unsigned int height,
+        loat fromX,
+        float fromY,
+        float sizeX,
+        float sizeY,
+        unsigned int iters,
+        unsigned int smoothing)
 {
-
-    // TODO если хочется избавиться от зернистости и дрожания при интерактивном погружении, добавьте anti-aliasing:
-    // грубо говоря, при anti-aliasing уровня N вам нужно рассчитать не одно значение в центре пикселя, а N*N значений
-    // в узлах регулярной решетки внутри пикселя, а затем посчитав среднее значение результатов - взять его за результат для всего пикселя
-    // это увеличит число операций в N*N раз, поэтому при рассчетах гигаплопс антиальясинг должен быть выключен
-
     const float threshold = 256.0f;
     const float threshold2 = threshold * threshold;
 
