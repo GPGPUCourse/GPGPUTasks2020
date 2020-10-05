@@ -7,7 +7,7 @@
 __kernel void mandelbrot(__global float *results,
         unsigned int width,
         unsigned int height,
-        loat fromX,
+        float fromX,
         float fromY,
         float sizeX,
         float sizeY,
