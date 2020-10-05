@@ -1,7 +1,10 @@
 #include <libutils/misc.h>
 #include <libutils/timer.h>
 #include <libutils/fast_random.h>
+#include <libgpu/context.h>
+#include <libgpu/shared_device_buffer.h>
 
+#include "cl/sum_cl.h"
 
 template<typename T>
 void raiseFail(const T &a, const T &b, std::string message, std::string filename, int line)
@@ -14,6 +17,11 @@ void raiseFail(const T &a, const T &b, std::string message, std::string filename
 
 #define EXPECT_THE_SAME(a, b, message) raiseFail(a, b, message, __FILE__, __LINE__)
 
+#define WORK_GROUP_SIZE 256
+
+unsigned int ceil_div(unsigned int a, unsigned int b) {
+    return (a + b - 1) / b;
+}
 
 int main(int argc, char **argv)
 {
@@ -28,6 +36,12 @@ int main(int argc, char **argv)
         reference_sum += as[i];
     }
 
+    gpu::Device device = gpu::chooseGPUDevice(argc, argv);
+
+    gpu::Context context;
+    context.init(device.device_id_opencl);
+    context.activate();
+
     {
         timer t;
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
@@ -38,8 +52,8 @@ int main(int argc, char **argv)
             EXPECT_THE_SAME(reference_sum, sum, "CPU result should be consistent!");
             t.nextLap();
         }
-        std::cout << "CPU:     " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
-        std::cout << "CPU:     " << (n/1000.0/1000.0) / t.lapAvg() << " millions/s" << std::endl;
+        std::cout << "CPU:       " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
+        std::cout << "CPU:       " << (n/1000.0/1000.0) / t.lapAvg() << " millions/s" << std::endl;
     }
 
     {
@@ -53,12 +67,62 @@ int main(int argc, char **argv)
             EXPECT_THE_SAME(reference_sum, sum, "CPU OpenMP result should be consistent!");
             t.nextLap();
         }
-        std::cout << "CPU OMP: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
-        std::cout << "CPU OMP: " << (n/1000.0/1000.0) / t.lapAvg() << " millions/s" << std::endl;
+        std::cout << "CPU OMP:   " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
+        std::cout << "CPU OMP:   " << (n/1000.0/1000.0) / t.lapAvg() << " millions/s" << std::endl;
     }
 
     {
-        // TODO: implement on OpenCL
-        // gpu::Device device = gpu::chooseGPUDevice(argc, argv);
+        timer t;
+        for (int iter = 0; iter < benchmarkingIters; ++iter) {
+            unsigned int sum = 0;
+            gpu::gpu_mem_32u as_gpu;
+            gpu::gpu_mem_32u sum_gpu;
+            as_gpu.resizeN(n);
+            as_gpu.writeN(as.data(), n);
+            sum_gpu.resizeN(1);
+            sum_gpu.writeN(&sum, 1);
+
+            ocl::Kernel kernel(sum_kernel, sum_kernel_length, "sum_atomic");
+            kernel.compile();
+
+            gpu::WorkSize workSize(256, n);
+            kernel.exec(workSize, as_gpu, sum_gpu, n);
+
+            sum_gpu.readN(&sum, 1);
+
+            EXPECT_THE_SAME(reference_sum, sum, "OpenCL1 result should be consistent!");
+            t.nextLap();
+        }
+        std::cout << "OpenCL #1: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
+        std::cout << "OpenCL #1: " << (n / 1000.0 / 1000.0) / t.lapAvg() << " millions/s" << std::endl;
+    }
+
+    {
+        timer t;
+        for (int iter = 0; iter < benchmarkingIters; ++iter) {
+            gpu::gpu_mem_32u as_gpu[2];
+            as_gpu[0].resizeN(n);
+            as_gpu[0].writeN(as.data(), n);
+
+            ocl::Kernel kernel(sum_kernel, sum_kernel_length, "sum_swap");
+            kernel.compile();
+
+            int i = 0;
+            for (unsigned int len = n; len > 1; len = ceil_div(len, WORK_GROUP_SIZE)) {
+                gpu::WorkSize workSize(WORK_GROUP_SIZE, len);
+                int j = (i + 1) % 2;
+                unsigned int len2 = ceil_div(len, WORK_GROUP_SIZE);
+                as_gpu[j].resizeN(len2);
+                kernel.exec(workSize, as_gpu[i], as_gpu[j], len);
+                i = j;
+            }
+            unsigned int sum = 0;
+            as_gpu[i].readN(&sum, 1);
+
+            EXPECT_THE_SAME(reference_sum, sum, "OpenCL2 result should be consistent!");
+            t.nextLap();
+        }
+        std::cout << "OpenCL #2: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
+        std::cout << "OpenCL #2: " << (n / 1000.0 / 1000.0) / t.lapAvg() << " millions/s" << std::endl;
     }
 }
