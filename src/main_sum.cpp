@@ -1,7 +1,10 @@
 #include <libutils/misc.h>
 #include <libutils/timer.h>
 #include <libutils/fast_random.h>
+#include <libgpu/context.h>
+#include <libgpu/shared_device_buffer.h>
 
+#include "cl/sum_cl.h"
 
 template<typename T>
 void raiseFail(const T &a, const T &b, std::string message, std::string filename, int line)
@@ -20,11 +23,11 @@ int main(int argc, char **argv)
     int benchmarkingIters = 10;
 
     unsigned int reference_sum = 0;
-    unsigned int n = 100*1000*1000;
+    unsigned int n = 100*1000*1000 + 3;
     std::vector<unsigned int> as(n, 0);
     FastRandom r(42);
     for (int i = 0; i < n; ++i) {
-        as[i] = (unsigned int) r.next(0, std::numeric_limits<unsigned int>::max() / n);
+        as[i] = (unsigned int) r.next(std::numeric_limits<unsigned int>::max() / n);
         reference_sum += as[i];
     }
 
@@ -58,7 +61,56 @@ int main(int argc, char **argv)
     }
 
     {
-        // TODO: implement on OpenCL
-        // gpu::Device device = gpu::chooseGPUDevice(argc, argv);
+        gpu::Device device = gpu::chooseGPUDevice(argc, argv);
+        gpu::Context context;
+        context.init(device.device_id_opencl);
+        context.activate();
+        {
+            ocl::Kernel kernel(sum_kernel, sum_kernel_length, "sum");
+
+            bool printLog = true;
+            kernel.compile(printLog);
+
+            device.printInfo();
+
+            gpu::WorkSize ws(32, ceil(n / 2.0));
+
+            gpu::shared_device_buffer_typed<unsigned int> numbersBuffer;
+            numbersBuffer.growN(*ws.clGlobalSize() * 2);
+
+            as.resize(*ws.clGlobalSize() * 2);
+            numbersBuffer.writeN(as.data(), as.size());
+
+            gpu::shared_device_buffer_typed<unsigned int> resultsBuffer;
+
+            auto pointsCount = ceil(*ws.clGlobalSize() / *ws.clLocalSize());
+
+            resultsBuffer.growN(pointsCount);
+
+            {
+                timer t;
+                for (int i = 0; i < benchmarkingIters; ++i) {
+
+                    std::vector<unsigned int> accumulatedValues(pointsCount, 0);
+                    resultsBuffer.writeN(accumulatedValues.data(), accumulatedValues.size());
+
+                    kernel.exec(ws, numbersBuffer, resultsBuffer);
+
+                    resultsBuffer.readN(accumulatedValues.data(), pointsCount);
+
+                    unsigned int sum = 0;
+                    for(auto value : accumulatedValues) {
+                        sum += value;
+                    }
+
+                    EXPECT_THE_SAME(reference_sum, sum, "CPU GPU result should be consistent!");
+
+                    t.nextLap();
+                }
+
+                std::cout << "GPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
+                std::cout << "GPU: " << (n/1000.0/1000.0) / t.lapAvg() << " millions/s" << std::endl;
+            }
+        }
     }
 }
