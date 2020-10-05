@@ -22,8 +22,8 @@ void raiseFail(const T &a, const T &b, std::string message, std::string filename
 
 int main(int argc, char **argv)
 {
-    int benchmarkingIters = 1;
-    int max_n = (1 << 13);
+    int benchmarkingIters = 10;
+    int max_n = (1 << 24);
 
     for (int n = 2; n <= max_n; n *= 2) {
         std::cout << "______________________________________________" << std::endl;
@@ -33,7 +33,7 @@ int main(int argc, char **argv)
         std::vector<int> as(n, 0);
         FastRandom r(n);
         for (int i = 0; i < n; ++i) {
-            as[i] = (unsigned int) r.next(/*-values_range*/1, values_range);
+            as[i] = (unsigned int) r.next(-values_range, values_range);
         }
 //        for (int i = 0; i < n; ++i) {
 //            std::cout << as[i] << " ";
@@ -113,13 +113,20 @@ int main(int argc, char **argv)
 
                 sums_gpu.readN(sums.data(), n);
 
-                int total_sum = - (1 << 24);
+                int total_sum = - (1 << 29);
+                int max_sum_index = -1;
                 for (int i = 0; i < n; ++i) {
                     if (total_sum < sums[i]) {
                         total_sum = sums[i];
+                        max_sum_index = i;
                     }
                 }
-                EXPECT_THE_SAME(reference_max_sum, total_sum, "GPU OpenCL result should be consistent!");
+                if (total_sum < 0) {
+                    total_sum = 0;
+                    max_sum_index = -1;
+                }
+                EXPECT_THE_SAME(reference_max_sum, total_sum, "GPU OpenCL sum result should be consistent!");
+                EXPECT_THE_SAME(reference_result, max_sum_index + 1, "GPU OpenCL index result should be consistent!");
                 t.nextLap();
             }
         }
