@@ -46,13 +46,13 @@ __kernel void sum_tree(__global const unsigned int* from,
     if (global_index == 0) {
         *res = 0;
     }
-    barrier(CLK_LOCAL_MEM_FENCE);
+    barrier(CLK_GLOBAL_MEM_FENCE);
 
     for (int step = WORK_GROUP_SIZE; step > 0; step = step / 2) {
         if (local_index < step / 2) {
             local_from[local_index] += local_from[local_index + step / 2];
         }
-        barrier(CLK_LOCAL_MEM_FENCE);
+        barrier(CLK_GLOBAL_MEM_FENCE);
     }
 
     if (local_index == 0) {
@@ -76,7 +76,7 @@ __kernel void sum_atomic(__global const unsigned int* from,
     if (global_index == 0) {
         *res = 0;
     }
-    barrier(CLK_LOCAL_MEM_FENCE);
+    barrier(CLK_GLOBAL_MEM_FENCE);
 
     if (local_index == 0) {
         unsigned int sums = 0;
