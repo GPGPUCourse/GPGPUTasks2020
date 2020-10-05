@@ -1,6 +1,10 @@
 #include <libutils/misc.h>
 #include <libutils/timer.h>
 #include <libutils/fast_random.h>
+#include <libgpu/context.h>
+#include <libgpu/shared_device_buffer.h>
+
+#include "cl/sum_cl.h"
 
 
 template<typename T>
@@ -21,9 +25,11 @@ int main(int argc, char **argv)
 
     unsigned int reference_sum = 0;
     unsigned int n = 100*1000*1000;
+    //unsigned int n = 25;
     std::vector<unsigned int> as(n, 0);
     FastRandom r(42);
     for (int i = 0; i < n; ++i) {
+        //as[i] = i + 1;
         as[i] = (unsigned int) r.next(0, std::numeric_limits<unsigned int>::max() / n);
         reference_sum += as[i];
     }
@@ -59,6 +65,52 @@ int main(int argc, char **argv)
 
     {
         // TODO: implement on OpenCL
-        // gpu::Device device = gpu::chooseGPUDevice(argc, argv);
+        gpu::Device device = gpu::chooseGPUDevice(argc, argv);
+        gpu::Context context;
+        context.init(device.device_id_opencl);
+        context.activate();
+        unsigned int old_n = n;
+        {
+            ocl::Kernel kernel(sum_kernel, sum_kernel_length, "sum");
+            bool printLog = true;
+            kernel.compile(printLog);
+
+            gpu::gpu_mem_32u sum_vram[] = {
+                gpu::gpu_mem_32u::createN(n),
+                gpu::gpu_mem_32u::createN(n)
+            };
+            
+            timer t;
+            for (int iter = 0; iter < benchmarkingIters; ++iter) {
+                n = old_n;
+                sum_vram[0].writeN(as.data(), n);
+
+                unsigned int work_group_size = 32;
+                unsigned int work_groups_number = (n + work_group_size - 1) / work_group_size;
+                unsigned int sum;
+                int k = 0;
+                while (true) {
+                    std::cout << "work_group_size = " << work_group_size << ", work_groups_number = " << work_groups_number << ", n = " << n << "\n";
+                    kernel.exec(gpu::WorkSize(work_group_size, work_groups_number * work_group_size),
+                        sum_vram[0],
+                        ocl::LocalMem(work_group_size * sizeof(unsigned int)),
+                        n,
+                        sum_vram[1]
+                    );
+                    if (work_groups_number == 1) {
+                        break;
+                    }
+                    n = work_groups_number;
+                    work_groups_number = (work_groups_number + work_group_size - 1) / work_group_size;
+                    std::swap(sum_vram[0], sum_vram[1]);
+                }
+                sum_vram[1].readN(&sum, 1);
+                std::cout << "sum = " << sum << ", ref = " << reference_sum << "\n";
+                EXPECT_THE_SAME(reference_sum, sum, "GPU result should be consistent!");
+                t.nextLap();
+            }
+            std::cout << "GPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
+            std::cout << "GPU: " << (n/1000.0/1000.0) / t.lapAvg() << " millions/s" << std::endl;
+        }
     }
 }
