@@ -54648,9 +54648,9 @@ namespace cimg_library_suffixed {
       cimg::exception_mode(0);
       try { save_magick(filename); }
       catch (CImgException&) {
-        try { save_imagemagick_external(filename,quality); }
+        try { save_graphicsmagick_external(filename,quality); }
         catch (CImgException&) {
-          try { save_graphicsmagick_external(filename,quality); }
+          try { save_imagemagick_external(filename,quality); }
           catch (CImgException&) {
             is_saved = false;
           }
