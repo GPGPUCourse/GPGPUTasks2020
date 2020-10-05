@@ -43,7 +43,6 @@ __kernel void max_prefix_sum(__global cint* psum, __global cint* presult, __glob
     local_psum[local_id]=global_id<n?psum[global_id]:0;
     local_presult[local_id]=global_id<n?presult[global_id]:0;
     local_pmax_sum[local_id]=global_id<n?pmax_sum[global_id]:0;
-    barrier(CLK_LOCAL_MEM_FENCE);
 
     for(uint m=1;m<WARP_SIZE;m*=2)
     {
@@ -107,7 +106,6 @@ __kernel void max_prefix_sum_2(__global cint* psum, __global cint* presult, __gl
     local_psum[local_id]=global_id<n?psum[global_id]:0;
     local_presult[local_id]=global_id<n?presult[global_id]:0;
     local_pmax_sum[local_id]=global_id<n?pmax_sum[global_id]:0;
-    barrier(CLK_LOCAL_MEM_FENCE);
 
     for(uint m=1;m<WARP_SIZE;m*=2)
     {
