@@ -74,6 +74,7 @@ int main(int argc, char **argv)
     images::Image<float> cpu_results(width, height, 1);
     images::Image<float> gpu_results(width, height, 1);
     images::Image<unsigned char> image(width, height, 3);
+    images::Image<unsigned char> gpu_image(width, height, 3);
 
     float sizeY = sizeX * height / width;
 
