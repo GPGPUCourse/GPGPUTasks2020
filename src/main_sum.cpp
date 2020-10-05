@@ -2,6 +2,13 @@
 #include <libutils/timer.h>
 #include <libutils/fast_random.h>
 
+#include <cmath>
+
+
+#include <libgpu/context.h>
+#include <libgpu/shared_device_buffer.h>
+#include "cl/sum_cl.h"
+
 
 template<typename T>
 void raiseFail(const T &a, const T &b, std::string message, std::string filename, int line)
@@ -60,5 +67,37 @@ int main(int argc, char **argv)
     {
         // TODO: implement on OpenCL
         // gpu::Device device = gpu::chooseGPUDevice(argc, argv);
+        gpu::Device device = gpu::chooseGPUDevice(argc, argv);
+        gpu::Context context;
+        context.init(device.device_id_opencl);
+        context.activate();
+
+        gpu::gpu_mem_32u xs;  //gpu
+        gpu::gpu_mem_32u sum; //gpu
+
+        xs.resizeN(n);
+        xs.writeN(as.data(),n);
+
+        sum.resizeN(1);
+
+        ocl::Kernel kernel(sum_kernel, sum_kernel_length , "sum_fast");
+        kernel.compile();
+        timer t;
+        for(int i = 0;i < benchmarkingIters;++i){
+
+            unsigned int sum_buffer = 0;
+            sum.writeN(&sum_buffer,1);
+
+            kernel.exec(gpu::WorkSize (256, n),xs,sum,n);
+
+            sum.readN(&sum_buffer,1);
+            EXPECT_THE_SAME(reference_sum, sum_buffer, "GPU result should be consistent!");
+            t.nextLap();
+
+
+        }
+        std::cout << "GPU OMP: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
+        std::cout << "GPU OMP: " << (n/1000.0/1000.0) / t.lapAvg() << " millions/s" << std::endl;
     }
+
 }
