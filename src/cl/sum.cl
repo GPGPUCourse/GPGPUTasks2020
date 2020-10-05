@@ -33,7 +33,7 @@ __kernel void fastSum(__global const unsigned int *xs,
     local_xs[localId] = 0;
 
     for (unsigned int i = 0; i < PER_ITEM; ++i) {
-        const unsigned int totalId = groupId * WORK_GROUP_SIZE * PER_ITEM + i * WORK_GROUP_SIZE + localId;
+        const unsigned int totalId = globalId * WORK_GROUP_SIZE * PER_ITEM + i * WORK_GROUP_SIZE + localId;
         if (totalId < n) {
             local_xs[localId] += xs[totalId];
         }
