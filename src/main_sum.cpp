@@ -1,6 +1,9 @@
 #include <libutils/misc.h>
 #include <libutils/timer.h>
 #include <libutils/fast_random.h>
+#include <libgpu/context.h>
+#include <libgpu/shared_device_buffer.h>
+#include "cl/sum_cl.h"
 
 
 template<typename T>
@@ -59,6 +62,36 @@ int main(int argc, char **argv)
 
     {
         // TODO: implement on OpenCL
-        // gpu::Device device = gpu::chooseGPUDevice(argc, argv);
+        gpu::Device device = gpu::chooseGPUDevice(argc, argv);
+        gpu::Context context;
+        context.init(device.device_id_opencl);
+        context.activate();
+
+        ocl::Kernel kernel(sum_kernel, sum_kernel_length, "sum");
+
+        bool printLog = false;
+        kernel.compile(printLog);
+
+        gpu::gpu_mem_32u a_gpu;
+        gpu::gpu_mem_32u res_gpu;
+
+        a_gpu.resizeN(n);
+        a_gpu.writeN(as.data(), n);
+        res_gpu.resizeN(1);
+
+        timer t;
+
+        for (int i = 0; i < benchmarkingIters; i++) {
+            unsigned int init_sum = 0;
+            res_gpu.writeN(&init_sum, 1);
+
+            kernel.exec(gpu::WorkSize(128, n + 1), a_gpu, n, res_gpu);
+            std::vector<unsigned int> res_cpu = {0};
+            res_gpu.readN(res_cpu.data(), 1);
+            EXPECT_THE_SAME(reference_sum, res_cpu[0], "GPU result should be consistent!");
+            t.nextLap();
+        }
+        std::cout << "GPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
+        std::cout << "GPU: " << (n/1000.0/1000.0) / t.lapAvg() << " millions/s" << std::endl;
     }
 }
