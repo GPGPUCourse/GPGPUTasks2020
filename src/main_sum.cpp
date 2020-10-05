@@ -33,7 +33,7 @@ int main(int argc, char **argv)
     std::vector<unsigned int> as(n, 0);
     FastRandom r(42);
     for (int i = 0; i < n; ++i) {
-        as[i] = (unsigned int) r.next(std::numeric_limits<unsigned int>::max() / n);
+        as[i] = (unsigned int) r.next(0, std::numeric_limits<unsigned int>::max() / n);
         reference_sum += as[i];
     }
 

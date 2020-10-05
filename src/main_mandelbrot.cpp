@@ -74,7 +74,6 @@ int main(int argc, char **argv)
     images::Image<float> cpu_results(width, height, 1);
     images::Image<float> gpu_results(width, height, 1);
     images::Image<unsigned char> image(width, height, 3);
-    images::Image<unsigned char> gpu_image(width, height, 3);
 
     float sizeY = sizeX * height / width;
 
@@ -170,7 +169,7 @@ int main(int argc, char **argv)
         }
     }
 
-    // Это бонус ввиде интерактивной отрисовки, не забудьте запустить на ГПУ чтобы посмотреть в какой момент числа итераций/точности single float перестанет хватать
+    // Это бонус в виде интерактивной отрисовки, не забудьте запустить на ГПУ, чтобы посмотреть, в какой момент числа итераций/точности single float перестанет хватать
     // Кликами мышки можно смещать ракурс
     // Но в Pull-request эти две строки должны быть закомментированы, т.к. на автоматическом тестировании нет оконной подсистемы 
 //    bool useGPU = false;
