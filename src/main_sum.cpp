@@ -2,6 +2,10 @@
 #include <libutils/timer.h>
 #include <libutils/fast_random.h>
 
+#include <libgpu/context.h>
+#include <libgpu/shared_device_buffer.h>
+
+#include "cl/sum_cl.h"
 
 template<typename T>
 void raiseFail(const T &a, const T &b, std::string message, std::string filename, int line)
@@ -59,6 +63,59 @@ int main(int argc, char **argv)
 
     {
         // TODO: implement on OpenCL
-        // gpu::Device device = gpu::chooseGPUDevice(argc, argv);
+        gpu::Device device = gpu::chooseGPUDevice(argc, argv);
+        gpu::Context context;
+        context.init(device.device_id_opencl);
+        context.activate();
+        ocl::Kernel kernel(sum_kernel, sum_kernel_length, "sum");
+
+        bool printLog = false;
+        kernel.compile(printLog);
+
+        gpu::gpu_mem_32u mem_gpu_const, mem_gpu0, mem_gpu1;
+        mem_gpu_const.resizeN(n);
+        mem_gpu0.resizeN(n);
+        mem_gpu1.resizeN(n);
+        mem_gpu_const.writeN(as.data(), n);
+
+        {
+            const unsigned int vals_in_step = 16;
+            timer t;
+            for (int iter = 0; iter < benchmarkingIters; ++iter) {
+                unsigned int current_n = n;
+                const size_t workGroupSize = 128;
+                bool from0to1 = false;
+                bool firstCall = true;
+                while (current_n > 1) {
+                    const int next_n = gpu::divup(current_n, vals_in_step);
+                    const size_t global_work_size = gpu::divup(next_n, workGroupSize) * workGroupSize;
+                    from0to1 = !from0to1; // wiil be true initially
+                    if (from0to1) {
+                        if (firstCall) {
+                            kernel.exec(gpu::WorkSize(workGroupSize, global_work_size), mem_gpu_const, mem_gpu1, current_n, vals_in_step);
+                            firstCall = false;
+                        } else {
+                            kernel.exec(gpu::WorkSize(workGroupSize, global_work_size), mem_gpu0, mem_gpu1, current_n, vals_in_step);
+                        }
+                    } else {
+                        kernel.exec(gpu::WorkSize(workGroupSize, global_work_size), mem_gpu1, mem_gpu0, current_n, vals_in_step);
+                    }
+                    current_n = next_n;
+                }
+
+                unsigned int gpu_sum;
+                if (from0to1) {
+                    mem_gpu1.readN(&gpu_sum, 1);
+                } else {
+                    mem_gpu0.readN(&gpu_sum, 1);
+                }
+                EXPECT_THE_SAME(reference_sum, gpu_sum, "GPU result should be consistent!");
+                t.nextLap();
+            }
+            std::cout << "GPU:     " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
+            std::cout << "GPU:     " << (n/1000.0/1000.0) / t.lapAvg() << " millions/s" << std::endl;
+        }
     }
+
+    return 0;
 }
