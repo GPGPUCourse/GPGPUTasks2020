@@ -16,8 +16,9 @@ __kernel void sum(
     int toIdx = globalId;
     int fromIdxStart = toIdx*valsInStep;
     int fromIdxEnd = min((toIdx+1)*valsInStep, n);
-    to[toIdx] = 0;
+    unsigned int sum = 0;
     for (int i = fromIdxStart; i < fromIdxEnd; ++i) {
-        to[toIdx] += from[i];
+        sum += from[i];
     }
+    to[toIdx] = sum;
 }
