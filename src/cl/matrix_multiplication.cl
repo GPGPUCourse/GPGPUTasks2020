@@ -13,8 +13,8 @@ __kernel void matrix_multiplication(__global const float *a, __global const floa
     int l0 = get_local_id(0);
     int l1 = get_local_id(1);
 
-    __local float a_q[GROUP_SIZE][GROUP_SIZE];
-    __local float b_q[GROUP_SIZE][GROUP_SIZE];
+    __local float a_q[GROUP_SIZE][GROUP_SIZE + 1];
+    __local float b_q[GROUP_SIZE][GROUP_SIZE + 1];
 
     float sum = 0;
     for (int q = 0; q * GROUP_SIZE < N; q++) {
