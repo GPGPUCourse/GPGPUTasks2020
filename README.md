@@ -43,21 +43,38 @@
 Дополните набросок кода ниже так, чтобы не было гонок (желательно добавить поясняющие комментарии почему вам кажется что это работает):
 
 ```C++
+
+struct mutex {
+    uint owner_ticket;
+    uint next_free_ticket;
+};
+
+void init(mutex* m) {
+    m->owner_ticket = 0;
+    m->next_free_ticket = 0;
+}
+
 __kernel do_some_work()
 {
     assert(get_group_id == [256, 1, 1]);
-
+    __local mutex m;
+    if (get_local_id(0) == 0) {
+        init(&m);
+    }
+    barrier(CLK_LOCAL_MEM_FENCE);
     __local disjoint_set = ...;
-
     for (int iters = 0; iters < 100; ++iters) {      // потоки делают сто итераций
-        if (some_random_predicat(get_local_id(0))) { // предикат срабатывает очень редко (например шанс - 0.1%)
-            ...                        // на каждой итерации некоторые потоки
-            union(disjoint_set, ...);  // могут захотеть обновить нашу структурку
-            ...
+        const uint this_thread_ticket = atomic_add(&(m.next_free_ticket), 1);
+        while (true) {
+            if (this_thread_ticket == atomic_load(&(m.owner_ticket))) {
+                if (some_random_predicat(get_local_id(0))) { // предикат срабатывает очень редко (например шанс - 0.1%)
+                    union(disjoint_set, ...);  // на каждой итерации некоторые потоки могут захотеть обновить нашу структурку
+                }
+                tmp = get(disjoint_set, ...); // потоки постоянно хотят читать из структурки
+                atomic_add(&owner_ticket, 1);
+                break;
+            }
         }
-        ...
-        tmp = get(disjoint_set, ...); // потоки постоянно хотят читать из структурки
-        ...
     }
 }
 ```
