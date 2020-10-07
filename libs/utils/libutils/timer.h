@@ -21,7 +21,7 @@ protected:
     double counter_;
     timer_type start_;
     int is_running_;
-    
+
     std::vector<double> laps_;
 
 public:
@@ -49,11 +49,13 @@ public:
         is_running_ = 0;
     }
 
-    double nextLap()
+    double nextLap(bool is_restart = true)
     {
         double lap_time = elapsed();
         laps_.push_back(lap_time);
-        restart();
+        if (is_restart) {
+            restart();
+        }
         return lap_time;
     }
 
@@ -81,7 +83,7 @@ public:
 
         return tm;
     }
-    
+
     const std::vector<double>& laps() const
     {
         return laps_;
@@ -91,7 +93,7 @@ public:
     double lapAvg() const
     {
         std::vector<double> laps = lapsFiltered();
-        
+
         double sum = 0.0;
         for (int i = 0; i < laps.size(); ++i) {
             sum += laps[i];
