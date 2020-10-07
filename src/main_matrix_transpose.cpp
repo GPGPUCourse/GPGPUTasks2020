@@ -47,8 +47,8 @@ int main(int argc, char **argv)
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
             unsigned int work_group_size_X = 16;
             unsigned int work_group_size_Y = 16;
-            unsigned int global_work_size_X = (M + work_group_size_X - 1) / work_group_size_X * work_group_size_X;
-            unsigned int global_work_size_Y = (K + work_group_size_Y - 1) / work_group_size_Y * work_group_size_Y;
+            unsigned int global_work_size_X = (K + work_group_size_X - 1) / work_group_size_X * work_group_size_X;
+            unsigned int global_work_size_Y = (M + work_group_size_Y - 1) / work_group_size_Y * work_group_size_Y;
             matrix_transpose_kernel.exec(gpu::WorkSize(work_group_size_X, work_group_size_Y, global_work_size_X, global_work_size_Y), as_gpu, as_t_gpu, M, K);
 
             t.nextLap();

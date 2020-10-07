@@ -9,8 +9,8 @@ __kernel void matrix_transpose(__global const float* m, __global float* m_t, uns
 
     const unsigned int i_local = get_local_id(1);
     const unsigned int j_local = get_local_id(0);
-    const unsigned int i = get_group_id(1) * WORKGROUP_SIZE_X;
-    const unsigned int j = get_group_id(0) * WORKGROUP_SIZE_Y;
+    const unsigned int i = get_group_id(1) * WORKGROUP_SIZE_Y;
+    const unsigned int j = get_group_id(0) * WORKGROUP_SIZE_X;
 
     unsigned int start_point_m = i * k + j;
     unsigned int start_point_m_t = j * n + i;
