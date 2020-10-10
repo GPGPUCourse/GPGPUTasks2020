@@ -20,8 +20,8 @@ int main(int argc, char **argv)
     context.activate();
 
     int benchmarkingIters = 10;
-    unsigned int M = 1024;
-    unsigned int K = 1024;
+    unsigned int M = 2048;
+    unsigned int K = 2048;
 
     std::vector<float> as(M*K, 0);
     std::vector<float> as_t(M*K, 0);
@@ -32,24 +32,23 @@ int main(int argc, char **argv)
     }
     std::cout << "Data generated for M=" << M << ", K=" << K << "!" << std::endl;
 
-    /*
     gpu::gpu_mem_32f as_gpu, as_t_gpu;
     as_gpu.resizeN(M*K);
     as_t_gpu.resizeN(K*M);
 
     as_gpu.writeN(as.data(), M*K);
-
-    ocl::Kernel matrix_transpose_kernel(matrix_transpose, matrix_transpose_length, "matrix_transpose");
+    
+    unsigned int work_group_side = 16;
+    std::string defines = "-DWORK_GROUP_SIDE=" + std::to_string(work_group_side);
+    
+    ocl::Kernel matrix_transpose_kernel(matrix_transpose, matrix_transpose_length, "matrix_transpose", defines);
     matrix_transpose_kernel.compile();
 
     {
         timer t;
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
-            // TODO
-            unsigned int work_group_size = 128;
-            unsigned int global_work_size = ...;
-            matrix_transpose_kernel.exec(gpu::WorkSize(work_group_size, global_work_size), as_gpu, as_t_gpu, M, K);
-
+            matrix_transpose_kernel.exec(gpu::WorkSize(work_group_side, work_group_side, K, M), as_gpu, as_t_gpu, M, K);
+            
             t.nextLap();
         }
         std::cout << "GPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
@@ -57,6 +56,32 @@ int main(int argc, char **argv)
     }
 
     as_t_gpu.readN(as_t.data(), M*K);
+
+#ifdef MY_DEBUG
+    {
+        for (int j = 0; j < M; j++) {
+            for (int i = 0; i < K; i++) {
+                float a = as[j * K + i];
+                
+                std::cout << a << ' ';
+            }
+            std::cout << '\n';
+        }
+        
+        std::cout << "\n\n";
+        
+        for (int j = 0; j < K; j++) {
+            for (int i = 0; i < M; i++) {
+                float b = as_t[j * K + i];
+                
+                std::cout << b << ' ';
+            }
+            std::cout << '\n';
+        }
+        
+        std::cout << std::endl;
+    }
+#endif
 
     // Проверяем корректность результатов
     for (int j = 0; j < M; ++j) {
@@ -69,7 +94,7 @@ int main(int argc, char **argv)
             }
         }
     }
-    */
+    
 
     return 0;
 }
