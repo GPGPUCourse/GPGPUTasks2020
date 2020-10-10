@@ -5,7 +5,7 @@
 #line 6
 
 #define WORK_GROUP_SIZE 128
-__kernel void sum(__global const unsigned int *sum_buffer, const unsigned int n, __global unsigned int *result) {
+__kernel void sum_default(__global const unsigned int *sum_buffer, const unsigned int n, __global unsigned int *result) {
 
     const unsigned int global_id = get_global_id(0);
     const unsigned int local_id = get_local_id(0);
