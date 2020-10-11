@@ -40,7 +40,7 @@ int main(int argc, char **argv)
 
     {
         timer t;
-        for (int iter = 0; iter < benchmarkingIters; ++iter) {
+        for (int iter = 0; iter < 1; ++iter) {
             for (int j = 0; j < M; ++j) {
                 for (int i = 0; i < N; ++i) {
                     float sum = 0.0f;
@@ -58,7 +58,7 @@ int main(int argc, char **argv)
 
     const std::vector<float> cs_cpu_reference = cs;
 
-    /*
+    
     gpu::gpu_mem_32f as_gpu, bs_gpu, cs_gpu;
     as_gpu.resizeN(M*K);
     bs_gpu.resizeN(K*N);
@@ -71,12 +71,14 @@ int main(int argc, char **argv)
     matrix_multiplication_kernel.compile();
 
     {
+        unsigned int tile_size = 16;
+        unsigned int work_sizeX = (M + tile_size - 1) / tile_size * tile_size;
+        unsigned int work_sizeY = (K + tile_size - 1) / tile_size * tile_size;
+        auto work_size = gpu::WorkSize(tile_size, tile_size, work_sizeX, work_sizeY);
+
         timer t;
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
-            // TODO
-            unsigned int work_group_size = 128;
-            unsigned int global_work_size = ...;
-            matrix_multiplication_kernel.exec(gpu::WorkSize(work_group_size, global_work_size), as_gpu, bs_gpu, cs_gpu, M, K, N);
+            matrix_multiplication_kernel.exec(work_size, as_gpu, bs_gpu, cs_gpu, M, K, N);
 
             t.nextLap();
         }
@@ -85,7 +87,7 @@ int main(int argc, char **argv)
     }
 
     cs_gpu.readN(cs.data(), M*N);
-    */
+    
 
     // Проверяем корректность результатов
     double diff_sum = 0;
