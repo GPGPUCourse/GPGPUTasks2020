@@ -25,10 +25,9 @@ __kernel void matrix_multiplication(__global const float* as,
 	
 	for(int k0=0;k0<K;k0+=WG_SIZE)
 	{
-		local_as[local_id_y][local_id_x]=(k0+local_id_x<K && global_id_y<M)?
-											as[global_id_y*K+k0+local_id_x]:0;
-		local_bs[local_id_y][local_id_x]=(k0+local_id_y<K && global_id_x<N)?
-											bs[(k0+local_id_y)*N+global_id_x]:0;
+		local_as[local_id_y][local_id_x]=(k0+local_id_x<K && global_id_y<M)?as[global_id_y*K+k0+local_id_x]:0;
+		local_bs[local_id_y][local_id_x]=(k0+local_id_y<K && global_id_x<N)?bs[(k0+local_id_y)*N+global_id_x]:0;
+		
 		barrier(CLK_LOCAL_MEM_FENCE);
 		
 		for(uint k=0;k<WG_SIZE;k++)
