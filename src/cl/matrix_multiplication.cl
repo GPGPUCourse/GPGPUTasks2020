@@ -10,9 +10,9 @@
 #define WG_SIZE 16
 
 __kernel void matrix_multiplication(__global const float* as,
-									__global const float* bs,
-									__global float* cs,
-									cuint M, cuint K, cuint N)
+				    __global const float* bs,
+				    __global float* cs,
+				    cuint M, cuint K, cuint N)
 {
     cuint global_id_x=get_global_id(0);
 	cuint global_id_y=get_global_id(1);
