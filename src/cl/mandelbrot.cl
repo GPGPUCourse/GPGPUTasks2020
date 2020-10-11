@@ -39,7 +39,7 @@ __kernel void mandelbrot(__global float *resultImg,const unsigned int width, con
     for(;i < cntIters;++i){
         float predX = x;
 
-        x = x * x - y * y + y0;
+        x = x * x - y * y + x0;
         y = 2.0f * predX * y + y0;
 
         if((x * x + y * y) > thrS){
@@ -50,7 +50,7 @@ __kernel void mandelbrot(__global float *resultImg,const unsigned int width, con
     float res = i;
 
     if(smoothing && (i != cntIters)){
-        res -= (log(log(sqrt(x * x + y * y)) / logThr));
+        res -=  (log(log(sqrt(x * x + y * y)) / logThr));
     }
 
     res = (res * 1.0f) / cntIters;
