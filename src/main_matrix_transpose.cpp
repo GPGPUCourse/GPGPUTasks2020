@@ -19,9 +19,11 @@ int main(int argc, char **argv)
     context.init(device.device_id_opencl);
     context.activate();
 
-    int benchmarkingIters = 10;
-    unsigned int M = 1024;
-    unsigned int K = 1024;
+    // Больше оборотов и больше размеры для более
+    // показательных замеров
+    int benchmarkingIters = 100;
+    unsigned int M = 2048;
+    unsigned int K = 2048;
 
     std::vector<float> as(M*K, 0);
     std::vector<float> as_t(M*K, 0);
@@ -32,7 +34,7 @@ int main(int argc, char **argv)
     }
     std::cout << "Data generated for M=" << M << ", K=" << K << "!" << std::endl;
 
-    /*
+    
     gpu::gpu_mem_32f as_gpu, as_t_gpu;
     as_gpu.resizeN(M*K);
     as_t_gpu.resizeN(K*M);
@@ -43,17 +45,19 @@ int main(int argc, char **argv)
     matrix_transpose_kernel.compile();
 
     {
+        unsigned int tile_size = 16;
+        unsigned int work_sizeX = (M + tile_size - 1) / tile_size * tile_size;
+        unsigned int work_sizeY = (K + tile_size - 1) / tile_size * tile_size;
+        auto work_size = gpu::WorkSize(tile_size, tile_size, work_sizeX, work_sizeY);
+
         timer t;
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
-            // TODO
-            unsigned int work_group_size = 128;
-            unsigned int global_work_size = ...;
-            matrix_transpose_kernel.exec(gpu::WorkSize(work_group_size, global_work_size), as_gpu, as_t_gpu, M, K);
+            matrix_transpose_kernel.exec(work_size, as_gpu, as_t_gpu, M, K);
 
             t.nextLap();
         }
         std::cout << "GPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
-        std::cout << "GPU: " << M*K/1000.0/1000.0 / t.lapAvg() << " millions/s" << std::endl;
+        std::cout << "GPU: " << M * K / 1000.0 / 1000.0 / t.lapAvg() << " millions/s" << std::endl;
     }
 
     as_t_gpu.readN(as_t.data(), M*K);
@@ -69,7 +73,7 @@ int main(int argc, char **argv)
             }
         }
     }
-    */
+    
 
     return 0;
 }
