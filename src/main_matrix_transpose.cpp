@@ -2,10 +2,13 @@
 #include <libutils/timer.h>
 #include <libutils/fast_random.h>
 #include <libgpu/context.h>
+#include <libgpu/device.h>
 #include <libgpu/shared_device_buffer.h>
+#include <libgpu/opencl/device_info.h>
 
 #include "cl/matrix_transpose_cl.h"
 
+#include <cassert>
 #include <vector>
 #include <iostream>
 #include <stdexcept>
@@ -20,8 +23,8 @@ int main(int argc, char **argv)
     context.activate();
 
     int benchmarkingIters = 10;
-    unsigned int M = 1024;
-    unsigned int K = 1024;
+    unsigned int M = 8192;
+    unsigned int K = 8192;
 
     std::vector<float> as(M*K, 0);
     std::vector<float> as_t(M*K, 0);
@@ -32,7 +35,6 @@ int main(int argc, char **argv)
     }
     std::cout << "Data generated for M=" << M << ", K=" << K << "!" << std::endl;
 
-    /*
     gpu::gpu_mem_32f as_gpu, as_t_gpu;
     as_gpu.resizeN(M*K);
     as_t_gpu.resizeN(K*M);
@@ -43,12 +45,35 @@ int main(int argc, char **argv)
     matrix_transpose_kernel.compile();
 
     {
+        ocl::DeviceInfo deviceInfo;
+        deviceInfo.init(device.device_id_opencl);
+        
+        size_t work_group_side = 1;
+        while ((work_group_side * work_group_side << 2) <= deviceInfo.max_workgroup_size) {
+            work_group_side <<= 1;
+        }
+
+        const size_t warp_size = deviceInfo.warp_size != 0 ? deviceInfo.warp_size : deviceInfo.wavefront_width;
+        assert(warp_size != 0 && "warp size is not zero");
+
+        // we want tiles of WARP_SIZE x WARP_SIZE which will be filled line by line 
+        // by whole warps and then subdivided into smaller WG_SIDE x WG_SIDE for transposition
+        assert(work_group_side * work_group_side % warp_size == 0 && "wrong assumptions");
+        assert(work_group_side < warp_size                        && "wrong assumptions");
+
+        // adjust global work size accordingly
+        const size_t global_tiles_x = (K + warp_size - 1) / warp_size;
+        const size_t global_tiles_y = (M + warp_size - 1) / warp_size;
+
+        const size_t global_work_size_x = global_tiles_x * work_group_side;
+        const size_t global_work_size_y = global_tiles_y * work_group_side;
+
         timer t;
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
-            // TODO
-            unsigned int work_group_size = 128;
-            unsigned int global_work_size = ...;
-            matrix_transpose_kernel.exec(gpu::WorkSize(work_group_size, global_work_size), as_gpu, as_t_gpu, M, K);
+            matrix_transpose_kernel.exec(
+                gpu::WorkSize(work_group_side, work_group_side, global_work_size_x, global_work_size_y), 
+                as_gpu, as_t_gpu, K, M
+            );
 
             t.nextLap();
         }
@@ -69,7 +94,6 @@ int main(int argc, char **argv)
             }
         }
     }
-    */
 
     return 0;
 }
