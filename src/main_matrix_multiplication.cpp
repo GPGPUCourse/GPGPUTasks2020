@@ -58,7 +58,7 @@ int main(int argc, char **argv)
 
     const std::vector<float> cs_cpu_reference = cs;
 
-    /*
+
     gpu::gpu_mem_32f as_gpu, bs_gpu, cs_gpu;
     as_gpu.resizeN(M*K);
     bs_gpu.resizeN(K*N);
@@ -73,10 +73,13 @@ int main(int argc, char **argv)
     {
         timer t;
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
-            // TODO
-            unsigned int work_group_size = 128;
-            unsigned int global_work_size = ...;
-            matrix_multiplication_kernel.exec(gpu::WorkSize(work_group_size, global_work_size), as_gpu, bs_gpu, cs_gpu, M, K, N);
+
+            const unsigned int tile_size = 16;
+            unsigned int work_size_X = (M + tile_size - 1) / tile_size * tile_size;
+            unsigned int work_size_Y = (K + tile_size - 1) / tile_size * tile_size;
+
+            gpu::WorkSize gpu_work_size = gpu::WorkSize(tile_size, tile_size, work_size_X, work_size_Y);
+            matrix_multiplication_kernel.exec(gpu_work_size, as_gpu, bs_gpu, cs_gpu, M, K, N);
 
             t.nextLap();
         }
@@ -85,16 +88,18 @@ int main(int argc, char **argv)
     }
 
     cs_gpu.readN(cs.data(), M*N);
-    */
 
     // Проверяем корректность результатов
     double diff_sum = 0;
     for (int i = 0; i < M * N; ++i) {
         double a = cs[i];
         double b = cs_cpu_reference[i];
-        if (a != 0.0 && b != 0.0) {
+        if (fabs(a) >= 1e-5 || fabs(b) >= 1e-5) {
             double diff = fabs(a - b) / std::max(fabs(a), fabs(b));
             diff_sum += diff;
+            if (diff > 0.1) {
+                std::cout << i / M << ":" << i % N << std::endl;
+            }
         }
     }
 
