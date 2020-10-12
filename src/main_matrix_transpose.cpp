@@ -10,6 +10,8 @@
 #include <iostream>
 #include <stdexcept>
 
+// Должно совпадать с matrix_transpose.cl
+#define LOCAL_WH 16
 
 int main(int argc, char **argv)
 {
@@ -20,19 +22,18 @@ int main(int argc, char **argv)
     context.activate();
 
     int benchmarkingIters = 10;
-    unsigned int M = 1024;
-    unsigned int K = 1024;
+    unsigned int M = 10000;
+    unsigned int K = 5000;
 
     std::vector<float> as(M*K, 0);
     std::vector<float> as_t(M*K, 0);
 
     FastRandom r(M+K);
     for (unsigned int i = 0; i < as.size(); ++i) {
-        as[i] = r.nextf();
+        as[i] = floor(r.nextf());
     }
     std::cout << "Data generated for M=" << M << ", K=" << K << "!" << std::endl;
 
-    /*
     gpu::gpu_mem_32f as_gpu, as_t_gpu;
     as_gpu.resizeN(M*K);
     as_t_gpu.resizeN(K*M);
@@ -40,15 +41,17 @@ int main(int argc, char **argv)
     as_gpu.writeN(as.data(), M*K);
 
     ocl::Kernel matrix_transpose_kernel(matrix_transpose, matrix_transpose_length, "matrix_transpose");
-    matrix_transpose_kernel.compile();
+    matrix_transpose_kernel.compile(false);
 
     {
         timer t;
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
             // TODO
-            unsigned int work_group_size = 128;
-            unsigned int global_work_size = ...;
-            matrix_transpose_kernel.exec(gpu::WorkSize(work_group_size, global_work_size), as_gpu, as_t_gpu, M, K);
+            unsigned int global_work_size0 = gpu::divup(K, LOCAL_WH)*LOCAL_WH;
+            unsigned int global_work_size1 = gpu::divup(M, LOCAL_WH)*LOCAL_WH;
+            matrix_transpose_kernel.exec(
+                gpu::WorkSize(LOCAL_WH, LOCAL_WH, global_work_size0, global_work_size1),
+                as_gpu, as_t_gpu, M, K);
 
             t.nextLap();
         }
@@ -69,7 +72,6 @@ int main(int argc, char **argv)
             }
         }
     }
-    */
 
     return 0;
 }
