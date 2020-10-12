@@ -14,7 +14,7 @@
 #include <iostream>
 #include <stdexcept>
 
-//#define WITH_CPU
+#define WITH_CPU
 
 int main(int argc, char **argv)
 {
