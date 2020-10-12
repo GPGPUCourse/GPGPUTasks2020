@@ -26,7 +26,7 @@ int main(int argc, char **argv)
     std::vector<float> as(M*K, 0);
     std::vector<float> as_t(M*K, 0);
 
-    FastRandom r(43);
+    FastRandom r(M * K);
     for (unsigned int i = 0; i < as.size(); ++i) {
         as[i] = r.nextf();
     }
