@@ -30,7 +30,7 @@ int main(int argc, char **argv)
 
     FastRandom r(M+K);
     for (unsigned int i = 0; i < as.size(); ++i) {
-        as[i] = floor(r.nextf());
+        as[i] = r.nextf();
     }
     std::cout << "Data generated for M=" << M << ", K=" << K << "!" << std::endl;
 
