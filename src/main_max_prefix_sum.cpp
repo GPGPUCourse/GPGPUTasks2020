@@ -31,7 +31,7 @@ int main(int argc, char **argv)
         std::vector<int> as(n, 0);
         FastRandom r(n);
         for (int i = 0; i < n; ++i) {
-            as[i] = (unsigned int) r.next(-values_range, values_range);
+            as[i] = r.next(-values_range, values_range);
         }
 
         int reference_max_sum;
