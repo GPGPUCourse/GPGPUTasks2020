@@ -24,7 +24,7 @@ int main(int argc, char **argv)
     int benchmarkingIters = 10;
 
     unsigned int reference_sum = 0;
-    unsigned int n = 100*1000*1000;
+    unsigned int n = 100;
     std::vector<unsigned int> as(n, 0);
     FastRandom r(42);
     for (int i = 0; i < n; ++i) {
@@ -79,6 +79,7 @@ int main(int argc, char **argv)
         mem_gpu_const.writeN(as.data(), n);
 
         {
+            // Должно совпадать с VALS_IN_STEP в sum.cl
             const unsigned int vals_in_step = 16;
             timer t;
             for (int iter = 0; iter < benchmarkingIters; ++iter) {
@@ -92,15 +93,16 @@ int main(int argc, char **argv)
                     from0to1 = !from0to1; // wiil be true initially
                     if (from0to1) {
                         if (firstCall) {
-                            kernel.exec(gpu::WorkSize(workGroupSize, global_work_size), mem_gpu_const, mem_gpu1, current_n, vals_in_step);
+                            kernel.exec(gpu::WorkSize(workGroupSize, global_work_size), mem_gpu_const, mem_gpu1, current_n);
                             firstCall = false;
                         } else {
-                            kernel.exec(gpu::WorkSize(workGroupSize, global_work_size), mem_gpu0, mem_gpu1, current_n, vals_in_step);
+                            kernel.exec(gpu::WorkSize(workGroupSize, global_work_size), mem_gpu0, mem_gpu1, current_n);
                         }
                     } else {
-                        kernel.exec(gpu::WorkSize(workGroupSize, global_work_size), mem_gpu1, mem_gpu0, current_n, vals_in_step);
+                        kernel.exec(gpu::WorkSize(workGroupSize, global_work_size), mem_gpu1, mem_gpu0, current_n);
                     }
                     current_n = next_n;
+                    std::cout << "-----------------------------\n";
                 }
 
                 unsigned int gpu_sum;
