@@ -84,11 +84,6 @@ int main(int argc, char **argv)
         ocl::DeviceInfo deviceInfo;
         deviceInfo.init(device.device_id_opencl);
         
-        size_t work_group_side = 1;
-        while ((work_group_side * work_group_side << 2) <= deviceInfo.max_workgroup_size) {
-            work_group_side <<= 1;
-        }
-
         const size_t warp_size = deviceInfo.warp_size != 0 
             ? deviceInfo.warp_size 
             : (deviceInfo.wavefront_width != 0 
@@ -96,10 +91,14 @@ int main(int argc, char **argv)
                 : 1 // fallback for GPU-less machines (like our CI)
             );
 
+        size_t work_group_side = 1;
+        while ((work_group_side * work_group_side << 2) <= std::min(deviceInfo.max_workgroup_size, warp_size * warp_size)) {
+            work_group_side <<= 1;
+        }
+
         // we want tiles of WARP_SIZE x WARP_SIZE which will be filled line by line 
         // by whole warps and then subdivided into smaller WG_SIDE x WG_SIDE for transposition
         assert(work_group_side * work_group_side % warp_size == 0 && "wrong assumptions");
-        assert(work_group_side < warp_size                        && "wrong assumptions");
 
         timer t;
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
