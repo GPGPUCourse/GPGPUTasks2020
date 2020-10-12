@@ -89,8 +89,12 @@ int main(int argc, char **argv)
             work_group_side <<= 1;
         }
 
-        const size_t warp_size = deviceInfo.warp_size != 0 ? deviceInfo.warp_size : deviceInfo.wavefront_width;
-        assert(warp_size != 0 && "warp size is not zero");
+        const size_t warp_size = deviceInfo.warp_size != 0 
+            ? deviceInfo.warp_size 
+            : (deviceInfo.wavefront_width != 0 
+                ? deviceInfo.wavefront_width 
+                : 1 // fallback for GPU-less machines (like our CI)
+            );
 
         // we want tiles of WARP_SIZE x WARP_SIZE which will be filled line by line 
         // by whole warps and then subdivided into smaller WG_SIDE x WG_SIDE for transposition
