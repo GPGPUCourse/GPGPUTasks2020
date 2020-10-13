@@ -87,10 +87,9 @@ int main(int argc, char **argv)
 
                 // Set-up NDRange
                 const unsigned int workGroupSize = 128;
-                const unsigned int global_work_size = (n + workGroupSize - 1) / workGroupSize * workGroupSize;
 
                 // Create index vector
-                std::vector<int> index_range(n);
+                std::vector<unsigned int> index_range(n);
                 std::iota(index_range.begin(), index_range.end(), 1);
 
                 // Set-up memory buffers
@@ -102,19 +101,19 @@ int main(int argc, char **argv)
                 sum_buffer.resizeN(n);
                 max_prefix_buffer.copyToN(sum_buffer, n);
 
-                gpu::gpu_mem_32i index_buffer; // Holds max prefix indexes
+                gpu::gpu_mem_32u index_buffer; // Holds max prefix indexes
                 index_buffer.resizeN(n);
                 index_buffer.writeN(index_range.data(), n);
 
                 // Swap buffers
                 gpu::gpu_mem_32i swap_max_prefix_buffer;
-                swap_max_prefix_buffer.resizeN(global_work_size);
+                swap_max_prefix_buffer.resizeN(n);
 
                 gpu::gpu_mem_32i swap_sum_buffer;
-                swap_sum_buffer.resizeN(global_work_size);
+                swap_sum_buffer.resizeN(n);
 
-                gpu::gpu_mem_32i swap_index_buffer;
-                swap_index_buffer.resizeN(global_work_size);
+                gpu::gpu_mem_32u swap_index_buffer;
+                swap_index_buffer.resizeN(n);
 
                 // Reset buffers
                 gpu::gpu_mem_32i gpu_reset_pref_buffer;
@@ -125,7 +124,7 @@ int main(int argc, char **argv)
                 gpu_reset_sum_buffer.resizeN(n);
                 sum_buffer.copyToN(gpu_reset_sum_buffer, n);
 
-                gpu::gpu_mem_32i gpu_reset_idx_buffer;
+                gpu::gpu_mem_32u gpu_reset_idx_buffer;
                 gpu_reset_idx_buffer.resizeN(n);
                 index_buffer.copyToN(gpu_reset_idx_buffer, n);
 
@@ -139,10 +138,9 @@ int main(int argc, char **argv)
                     gpu_reset_idx_buffer.copyToN(index_buffer, n);
                     t.start();
 
-                    unsigned int remain_size = global_work_size;
+                    unsigned int remain_size = n;
                     unsigned int prev_remain_size;
                     while (true){
-
                         prev_remain_size = remain_size; // Save real remaining size
                         remain_size = ((remain_size + workGroupSize - 1) / workGroupSize) * workGroupSize; // Pad to match workGroupSize
 
@@ -163,12 +161,12 @@ int main(int argc, char **argv)
                     }
 
                     int max_prefix_value = 0;
-                    int max_pref_index = 0;
+                    unsigned int max_pref_index = 0;
                     max_prefix_buffer.readN(&max_prefix_value, 1);
                     index_buffer.readN(&max_pref_index, 1);
 
                     EXPECT_THE_SAME(reference_max_sum, max_prefix_value, "GPU result should be consistent!");
-                    EXPECT_THE_SAME(reference_result, max_pref_index, "GPU result should be consistent!");
+                    EXPECT_THE_SAME((unsigned int)reference_result, max_pref_index, "GPU result should be consistent!");
                     t.nextLap();
                 }
 

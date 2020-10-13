@@ -3,11 +3,12 @@
 #endif
 
 #line 6
-
-#define WORK_GROUP_SIZE 128
-__kernel void max_prefix_sum(__global const int *max_pref, __global const int *sum, __global const int *index_range,
-                             __global int *res_max_pref, __global int *res_sum, __global int *res_index_range,
-                             unsigned int n)
+#ifndef WORK_GROUP_SIZE
+    #define WORK_GROUP_SIZE 128
+#endif
+__kernel void max_prefix_sum(__global const int *max_pref, __global const int *sum, __global const unsigned int *index_range,
+                             __global int *res_max_pref, __global int *res_sum, __global unsigned int *res_index_range,
+                             const unsigned int n)
 {
     const unsigned int global_id = get_global_id(0);
     const unsigned int group_id = get_group_id(0);
@@ -26,15 +27,14 @@ __kernel void max_prefix_sum(__global const int *max_pref, __global const int *s
         local_sum[local_id] = 0;
         local_index_range[local_id] = 0;
     }
-
     barrier(CLK_LOCAL_MEM_FENCE);
+
     // simple version w/ summation via one thread
     // TO DO: Update to multiple thread version
-
     if (local_id == 0){
         int current_pref_sum = 0;
         int current_sum = 0;
-        int current_index = 0;
+        unsigned int current_index = 0;
         for (unsigned int i = 0; i < WORK_GROUP_SIZE; ++i) {
             // trying to merge current maximum prefix with another block
             if (current_pref_sum < local_max_pref[i] + current_sum) {
@@ -43,6 +43,7 @@ __kernel void max_prefix_sum(__global const int *max_pref, __global const int *s
             }
             current_sum += local_sum[i];
         }
+
         res_max_pref[group_id] = current_pref_sum;
         res_sum[group_id] = current_sum;
         res_index_range[group_id] = current_index;
