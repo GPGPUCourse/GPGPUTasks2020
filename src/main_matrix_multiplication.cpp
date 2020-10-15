@@ -63,6 +63,9 @@ int main(int argc, char **argv)
     bs_gpu.resizeN(K*N);
     cs_gpu.resizeN(M*N);
 
+    std::vector<float> trash(M*N, -1.0f);
+    cs_gpu.writeN(trash.data(), trash.size()); // инициализируем массив в видеопамяти (кернел должен записать туда правильные данные)
+
     as_gpu.writeN(as.data(), M*K);
     bs_gpu.writeN(bs.data(), K*N);
 
