@@ -136,8 +136,8 @@ int main(int argc, char **argv)
             }
 
             {
-                const size_t global_tiles_x = (M + warp_size - 1) / warp_size;
-                const size_t global_tiles_y = (N + warp_size - 1) / warp_size;
+                const size_t global_tiles_x = (M + tile_side - 1) / tile_side;
+                const size_t global_tiles_y = (N + tile_side - 1) / tile_side;
 
                 const size_t global_work_size_x = global_tiles_x * work_group_side;
                 const size_t global_work_size_y = global_tiles_y * work_group_side;
