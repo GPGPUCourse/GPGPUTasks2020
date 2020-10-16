@@ -16,8 +16,8 @@ __kernel void matrix_multiplication(__global float* a, __global float* b, __glob
     int group_x = get_group_id(0);
     int group_y = get_group_id(1);
 
-    __local float tileA[TILE_SIZE + 1][TILE_SIZE + 1];
-    __local float tileB[TILE_SIZE + 1][TILE_SIZE + 1];
+    __local float tileA[TILE_SIZE][TILE_SIZE + 1];
+    __local float tileB[TILE_SIZE][TILE_SIZE + 1];
 
     float sum = 0.0f;
     for (int tileK = 0; TILE_SIZE * tileK < k; ++tileK) {

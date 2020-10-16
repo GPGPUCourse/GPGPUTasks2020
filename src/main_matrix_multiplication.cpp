@@ -63,6 +63,9 @@ int main(int argc, char **argv)
     bs_gpu.resizeN(K*N);
     cs_gpu.resizeN(M*N);
 
+    std::vector<float> trash(M*N, -1.0f);
+    cs_gpu.writeN(trash.data(), trash.size()); // инициализируем массив в видеопамяти (кернел должен записать туда правильные данные)
+
     as_gpu.writeN(as.data(), M*K);
     bs_gpu.writeN(bs.data(), K*N);
 
@@ -73,9 +76,9 @@ int main(int argc, char **argv)
         timer t;
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
             unsigned int group_side = 16;
-            unsigned int global_work_size_y = (M + group_side - 1) / group_side * group_side;
-            //unsigned int global_work_size_x = (K + group_side - 1) / group_side * group_side;
-            matrix_multiplication_kernel.exec(gpu::WorkSize(group_side, group_side, group_side, global_work_size_y),
+            unsigned int global_work_y = (M + group_side - 1) / group_side * group_side;
+            unsigned int global_work_x = (K + group_side - 1) / group_side * group_side;
+            matrix_multiplication_kernel.exec(gpu::WorkSize(group_side, group_side, global_work_x, global_work_y),
                                               as_gpu, bs_gpu, cs_gpu, M, K, N);
 
             t.nextLap();

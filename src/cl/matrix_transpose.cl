@@ -15,7 +15,7 @@ __kernel void matrix_transpose(__global float* a, __global float* at, unsigned i
     int group_x = get_group_id(0);
     int group_y = get_group_id(1);
 
-    __local float tile[TILE_SIZE + 1][TILE_SIZE + 1];
+    __local float tile[TILE_SIZE][TILE_SIZE + 1];
 
     if (x < k && y < m) {
         tile[local_y][local_x] = a[y * k + x];
