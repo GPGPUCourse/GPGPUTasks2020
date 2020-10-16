@@ -83,22 +83,41 @@ int main(int argc, char **argv)
     {
         ocl::DeviceInfo deviceInfo;
         deviceInfo.init(device.device_id_opencl);
-        
+
         const size_t warp_size = deviceInfo.warp_size != 0 
             ? deviceInfo.warp_size 
             : (deviceInfo.wavefront_width != 0 
                 ? deviceInfo.wavefront_width 
                 : 1 // fallback for GPU-less machines (like our CI)
             );
-
-        size_t work_group_side = 1;
-        while ((work_group_side * work_group_side << 2) <= std::min(deviceInfo.max_workgroup_size, warp_size * warp_size)) {
-            work_group_side <<= 1;
-        }
-
-        // we want tiles of WARP_SIZE x WARP_SIZE which will be filled line by line 
-        // by whole warps and then subdivided into smaller WG_SIDE x WG_SIDE for transposition
-        assert(work_group_side * work_group_side % warp_size == 0 && "wrong assumptions");
+        const size_t max_workgroup_size = deviceInfo.max_workgroup_size;
+        const size_t max_local_size = deviceInfo.local_mem_size;
+        const size_t work_group_side = [warp_size, max_workgroup_size]() {
+            size_t result = 1;
+            while (
+                2 * result <= warp_size &&                   // workaround for WARP_SIZE=1 for CPU-only setups
+                (result * result << 2) <= max_workgroup_size // max workgroup size is also a limitation
+            )
+                result <<= 1;
+            
+            return result;
+        }();
+        std::cout << "work group " << work_group_side << " x " << work_group_side << " chosen" << std::endl;
+            
+        const size_t tile_side = [warp_size, max_local_size]() {
+            size_t result = 1;
+            while (
+                2 * result <= warp_size &&                                 // we want to fill the whole tile line with 
+                                                                           // a single warp's threads for coalesced access
+                4 * 3 * (2 * result) * (2 * result + 1) <= max_local_size  // local memory limit is also a thing
+            )
+                result <<= 1;
+    
+            return result;
+        }();
+        std::cout << "tile side " << tile_side << " x " << tile_side << " chosen" << std::endl;
+        
+        assert(tile_side % work_group_side == 0 && "shared tile is evenly subdivided into WG x WG tiles");
 
         timer t;
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
@@ -112,6 +131,7 @@ int main(int argc, char **argv)
                 matrix_transpose_kernel.exec(
                     gpu::WorkSize(work_group_side, work_group_side, global_work_size_x, global_work_size_y), 
                     bs_gpu, bs_t_gpu, K, N
+                    // too lazy to fix both tasks :P
                 );
             }
 
@@ -122,9 +142,12 @@ int main(int argc, char **argv)
                 const size_t global_work_size_x = global_tiles_x * work_group_side;
                 const size_t global_work_size_y = global_tiles_y * work_group_side;
 
+                const ocl::LocalMem tile_memory(tile_side * (tile_side + 1) * sizeof(float)); // +1 for memory bank shifting
+
                 matrix_multiplication_kernel.exec(
                     gpu::WorkSize(work_group_side, work_group_side, global_work_size_y, global_work_size_x), 
-                    as_gpu, bs_t_gpu, cs_gpu, M, K, N
+                    as_gpu, bs_t_gpu, cs_gpu, M, K, N,
+                    (unsigned) tile_side, tile_memory, tile_memory, tile_memory
                 );
             }
 

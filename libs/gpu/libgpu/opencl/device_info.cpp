@@ -15,6 +15,7 @@ DeviceInfo::DeviceInfo()
 	max_work_item_sizes[1]		= 0;
 	max_work_item_sizes[2]		= 0;
 	global_mem_size				= 0;
+	local_mem_size              = 0;
 	device_address_bits			= 0;
 	vendor_id					= 0;
 	warp_size					= 0;
@@ -46,6 +47,7 @@ void DeviceInfo::init(cl_device_id device_id)
 	cl_uint			vendor_id					= 0;
 	cl_ulong		max_mem_alloc_size			= 0;
 	cl_ulong		global_mem_size				= 0;
+	cl_ulong        local_mem_size              = 0;
 	cl_uint			device_address_bits			= 0;
 	char			device_string[1024]			= "";
 	char			vendor_string[1024]			= "";
@@ -66,6 +68,7 @@ void DeviceInfo::init(cl_device_id device_id)
 	OCL_SAFE_CALL(clGetDeviceInfo(device_id, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS,	sizeof(max_work_item_dimensions),	&max_work_item_dimensions, NULL));
 	OCL_SAFE_CALL(clGetDeviceInfo(device_id, CL_DEVICE_MAX_WORK_GROUP_SIZE,			sizeof(max_workgroup_size),			&max_workgroup_size, NULL));
 	OCL_SAFE_CALL(clGetDeviceInfo(device_id, CL_DEVICE_GLOBAL_MEM_SIZE,				sizeof(global_mem_size),			&global_mem_size, NULL));
+	OCL_SAFE_CALL(clGetDeviceInfo(device_id, CL_DEVICE_LOCAL_MEM_SIZE,              sizeof(local_mem_size),             &local_mem_size, NULL));
 	OCL_SAFE_CALL(clGetDeviceInfo(device_id, CL_DEVICE_ADDRESS_BITS,				sizeof(device_address_bits),		&device_address_bits, NULL));
 	OCL_SAFE_CALL(clGetDeviceInfo(device_id, CL_DEVICE_VENDOR_ID,					sizeof(vendor_id),					&vendor_id, NULL));
 
@@ -82,6 +85,7 @@ void DeviceInfo::init(cl_device_id device_id)
 	this->max_mem_alloc_size		= max_mem_alloc_size;
 	this->max_workgroup_size		= max_workgroup_size;
 	this->global_mem_size			= global_mem_size;
+	this->local_mem_size            = local_mem_size;
 	this->device_address_bits		= device_address_bits;
 	this->max_work_item_dimensions	= max_work_item_dimensions;
 	this->driver_version			= std::string(driver_version_string);

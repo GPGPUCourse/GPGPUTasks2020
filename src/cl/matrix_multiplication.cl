@@ -1,8 +1,7 @@
-#define TILE_SIDE WARP_SIZE
-
 __kernel void matrix_multiplication(
     __global const float *a, __global const float *b_transposed, __global float *c, 
-    const unsigned Y, const unsigned Z, const unsigned X
+    const unsigned Y, const unsigned Z, const unsigned X,
+    const unsigned TILE_SIDE, __local float *a_tile, __local float *b_tile, __local float *c_tile
 ) {
     // WG x WG groups
     const size_t sideOfGroup = get_local_size(1); // same as local_size(0)
@@ -23,16 +22,12 @@ __kernel void matrix_multiplication(
     const size_t zTiles = (Z + TILE_SIDE - 1) / TILE_SIDE;
     const size_t warpCount = sideOfGroup * sideOfGroup / TILE_SIDE;
 
-    __local float a_tile[TILE_SIDE][TILE_SIDE + 1]; // +1 for memory bank shifting
-    __local float b_tile[TILE_SIDE][TILE_SIDE + 1];
-    __local float c_tile[TILE_SIDE][TILE_SIDE + 1];
-
     // 0. initialize result
     for (size_t rowsProcessed = 0; rowsProcessed < TILE_SIDE; rowsProcessed += warpCount) {
         const size_t yInTile = rowsProcessed + yShiftInTile;
         const size_t xInTile =                 xShiftInTile;
 
-        c_tile[yInTile][xInTile] = 0;
+        c_tile[yInTile * (TILE_SIDE + 1) + xInTile] = 0;
     }
 
     for (size_t zTile = 0; zTile < zTiles; ++zTile) {
@@ -45,9 +40,9 @@ __kernel void matrix_multiplication(
             const size_t xGlobal = zTile  * TILE_SIDE + xInTile;
             
             if (yGlobal < Y && xGlobal < Z)
-                a_tile[yInTile][xInTile] = a[yGlobal * Z + xGlobal];
+                a_tile[yInTile * (TILE_SIDE + 1) + xInTile] = a[yGlobal * Z + xGlobal];
             else
-                a_tile[yInTile][xInTile] = 0;
+                a_tile[yInTile * (TILE_SIDE + 1) + xInTile] = 0;
         }
 
         for (size_t rowsProcessed = 0; rowsProcessed < TILE_SIDE; rowsProcessed += warpCount) {
@@ -58,9 +53,9 @@ __kernel void matrix_multiplication(
             const size_t xGlobal = zTile  * TILE_SIDE + xInTile;
         
             if (yGlobal < X && xGlobal < Z)
-                b_tile[yInTile][xInTile] = b_transposed[yGlobal * Z + xGlobal];
+                b_tile[yInTile * (TILE_SIDE + 1) + xInTile] = b_transposed[yGlobal * Z + xGlobal];
             else
-                b_tile[yInTile][xInTile] = 0;
+                b_tile[yInTile * (TILE_SIDE + 1) + xInTile] = 0;
         }
         barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -70,7 +65,10 @@ __kernel void matrix_multiplication(
             const size_t xInTile =                 xShiftInTile;
 
             for (size_t zInTile = 0; zInTile < TILE_SIDE; ++zInTile)
-                c_tile[yInTile][xInTile] += a_tile[yInTile][zInTile] * b_tile[xInTile][zInTile];
+                c_tile[yInTile * (TILE_SIDE + 1) + xInTile] += 
+                    a_tile[yInTile * (TILE_SIDE + 1) + zInTile] 
+                    * 
+                    b_tile[xInTile * (TILE_SIDE + 1) + zInTile];
         }
         barrier(CLK_LOCAL_MEM_FENCE);
     }
@@ -84,6 +82,6 @@ __kernel void matrix_multiplication(
         const size_t xGlobal = xGroup * TILE_SIDE + xInTile;
         
         if (yGlobal < Y && xGlobal < X)
-            c[yGlobal * X + xGlobal] = c_tile[yInTile][xInTile];
+            c[yGlobal * X + xGlobal] = c_tile[yInTile * (TILE_SIDE + 1) + xInTile];
     }
 }

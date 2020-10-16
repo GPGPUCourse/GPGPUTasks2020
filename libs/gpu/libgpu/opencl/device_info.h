@@ -28,6 +28,7 @@ public:
 	size_t					max_workgroup_size;
 	size_t					max_work_item_sizes[3];
 	size_t					global_mem_size;
+	size_t                  local_mem_size;
 	size_t 					device_address_bits;
 	size_t					max_work_item_dimensions;
 	unsigned int			warp_size;
