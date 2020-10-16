@@ -74,12 +74,6 @@ int main(int argc, char **argv)
     as_gpu.writeN(as.data(), M*K);
     bs_gpu.writeN(bs.data(), K*N);
 
-    ocl::Kernel matrix_transpose_kernel(matrix_transpose, matrix_transpose_length, "matrix_transpose");
-    matrix_transpose_kernel.compile();
-
-    ocl::Kernel matrix_multiplication_kernel(matrix_multiplication, matrix_multiplication_length, "matrix_multiplication");
-    matrix_multiplication_kernel.compile();
-
     {
         ocl::DeviceInfo deviceInfo;
         deviceInfo.init(device.device_id_opencl);
@@ -119,6 +113,15 @@ int main(int argc, char **argv)
         
         assert(tile_side % work_group_side == 0 && "shared tile is evenly subdivided into WG x WG tiles");
 
+        ocl::Kernel matrix_transpose_kernel(matrix_transpose, matrix_transpose_length, "matrix_transpose");
+        matrix_transpose_kernel.compile();
+
+        ocl::Kernel matrix_multiplication_kernel(
+            matrix_multiplication, matrix_multiplication_length, "matrix_multiplication",
+            "-DTILE_SIDE=" + std::to_string(tile_side)
+        );
+        matrix_multiplication_kernel.compile();
+
         timer t;
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
             {
@@ -146,8 +149,7 @@ int main(int argc, char **argv)
 
                 matrix_multiplication_kernel.exec(
                     gpu::WorkSize(work_group_side, work_group_side, global_work_size_y, global_work_size_x), 
-                    as_gpu, bs_t_gpu, cs_gpu, M, K, N,
-                    (unsigned) tile_side, tile_memory, tile_memory, tile_memory
+                    as_gpu, bs_t_gpu, cs_gpu, M, K, N
                 );
             }
 
