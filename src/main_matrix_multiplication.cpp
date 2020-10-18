@@ -67,7 +67,7 @@ int main(int argc, char **argv)
     bs_gpu.writeN(bs.data(), K*N);
 
     unsigned int work_group_size = 16;
-    unsigned int global_work_size_0 = (K + work_group_size - 1) / work_group_size * work_group_size;
+    unsigned int global_work_size_0 = (N + work_group_size - 1) / work_group_size * work_group_size;
     unsigned int global_work_size_1 = (M + work_group_size - 1) / work_group_size * work_group_size;
 
     //naive matrix multiplication
