@@ -52,36 +52,84 @@ int main(int argc, char **argv)
         std::cout << "CPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
         std::cout << "CPU: " << (n/1000/1000) / t.lapAvg() << " millions/s" << std::endl;
     }
-/*
+
     gpu::gpu_mem_32f as_gpu;
     as_gpu.resizeN(n);
+
+    {
+        ocl::Kernel bitonic(bitonic_kernel, bitonic_kernel_length, "wikipedia_bitonic");
+        bitonic.compile();
+
+        timer t;
+        timer transfer;
+        for (int iter = 0; iter < benchmarkingIters; ++iter) {
+            transfer.restart();
+            as_gpu.writeN(as.data(), n);
+            transfer.nextLap();
+
+            t.restart(); // Запускаем секундомер после прогрузки данных чтобы замерять время работы кернела, а не трансфер данных
+
+            unsigned int workGroupSize = 128;
+            for (unsigned int global_strip = 2; global_strip <= n; global_strip *= 2) {
+                for (unsigned int local_strip = global_strip / 2; local_strip > 0; local_strip /= 2) {
+                    unsigned int global_work_size = n;
+                    bitonic.exec(gpu::WorkSize(workGroupSize, global_work_size),
+                                 as_gpu, global_strip, local_strip, n);
+                }
+            }
+
+            t.nextLap();
+        }
+
+        std::cout << "GPU data transfer: " << transfer.lapAvg() << "+-" << transfer.lapStd() << " s" << std::endl;
+        std::cout << "GPU data transfer: " << (n/1000/1000) / transfer.lapAvg() << " millions/s" << std::endl;
+        std::cout << "GPU wiki bitonic: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
+        std::cout << "GPU wiki bitonic: " << (n/1000/1000) / t.lapAvg() << " millions/s" << std::endl;
+        std::cout << "GPU wiki bitonic with transfer: " << (n/1000/1000) / (t.lapAvg() + transfer.lapAvg()) << " millions/s" << std::endl;
+
+        as_gpu.readN(as.data(), n);
+
+        // Проверяем корректность результатов
+        for (int i = 0; i < n; ++i) {
+            EXPECT_THE_SAME(as[i], cpu_sorted[i], "GPU results should be equal to CPU results!");
+        }
+    }
 
     {
         ocl::Kernel bitonic(bitonic_kernel, bitonic_kernel_length, "bitonic");
         bitonic.compile();
 
         timer t;
+        timer transfer;
+
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
+            transfer.restart();
             as_gpu.writeN(as.data(), n);
+            transfer.nextLap();
 
             t.restart(); // Запускаем секундомер после прогрузки данных чтобы замерять время работы кернела, а не трансфер данных
 
             unsigned int workGroupSize = 128;
-            unsigned int global_work_size = (n + workGroupSize - 1) / workGroupSize * workGroupSize;
-            bitonic.exec(gpu::WorkSize(workGroupSize, global_work_size),
-                         as_gpu, n);
+            for (unsigned int global_strip = 2; global_strip <= n; global_strip *= 2) {
+                for (unsigned int local_strip = global_strip; local_strip > 1; local_strip /= 2) {
+                    unsigned int global_work_size = n / 2;
+                    bitonic.exec(gpu::WorkSize(workGroupSize, global_work_size),
+                                 as_gpu, global_strip, local_strip, n);
+                }
+            }
+
             t.nextLap();
         }
         std::cout << "GPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
         std::cout << "GPU: " << (n/1000/1000) / t.lapAvg() << " millions/s" << std::endl;
+        std::cout << "GPU with transfer: " << (n/1000/1000) / (t.lapAvg() + transfer.lapAvg()) << " millions/s" << std::endl;
 
         as_gpu.readN(as.data(), n);
+        // Проверяем корректность результатов
+        for (int i = 0; i < n; ++i) {
+            EXPECT_THE_SAME(as[i], cpu_sorted[i], "GPU results should be equal to CPU results!");
+        }
     }
 
-    // Проверяем корректность результатов
-    for (int i = 0; i < n; ++i) {
-        EXPECT_THE_SAME(as[i], cpu_sorted[i], "GPU results should be equal to CPU results!");
-    }
-*/
     return 0;
 }
