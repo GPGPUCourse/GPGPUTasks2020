@@ -4,6 +4,7 @@
 #include <libgpu/context.h>
 #include <libgpu/shared_device_buffer.h>
 
+#include "cl/matrix_transpose_cl.h"
 #include "cl/matrix_multiplication_cl.h"
 
 #include <vector>
@@ -58,26 +59,32 @@ int main(int argc, char **argv)
 
     const std::vector<float> cs_cpu_reference = cs;
 
-    /*
-    gpu::gpu_mem_32f as_gpu, bs_gpu, cs_gpu;
+    gpu::gpu_mem_32f as_gpu, bs_gpu, cs_gpu, cs_gpu_t;
     as_gpu.resizeN(M*K);
     bs_gpu.resizeN(K*N);
     cs_gpu.resizeN(M*N);
+    cs_gpu_t.resizeN(M*N);
 
     as_gpu.writeN(as.data(), M*K);
     bs_gpu.writeN(bs.data(), K*N);
 
+    ocl::Kernel matrix_transpose_kernel(matrix_transpose, matrix_transpose_length, "matrix_transpose");
     ocl::Kernel matrix_multiplication_kernel(matrix_multiplication, matrix_multiplication_length, "matrix_multiplication");
     matrix_multiplication_kernel.compile();
 
     {
         timer t;
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
-            // TODO
-            unsigned int work_group_size = 128;
-            unsigned int global_work_size = ...;
-            matrix_multiplication_kernel.exec(gpu::WorkSize(work_group_size, global_work_size), as_gpu, bs_gpu, cs_gpu, M, K, N);
+            // use transponse
+            unsigned int wg_side = 2;
+            unsigned int g_work_size_x = (M + wg_side - 1) / wg_side * wg_side;
+            unsigned int g_work_size_y = (N + wg_side - 1) / wg_side * wg_side;
+            matrix_transpose_kernel.exec(
+                    gpu::WorkSize(wg_side, wg_side, g_work_size_x, g_work_size_y),
+                    cs_gpu, cs_gpu_t, M, K);
 
+            matrix_multiplication_kernel.exec(gpu::WorkSize(wg_side, wg_side, g_work_size_x, g_work_size_y), as_gpu, bs_gpu, cs_gpu_t, M, K, N);
+            cs_gpu.swap(cs_gpu_t);
             t.nextLap();
         }
         std::cout << "GPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
@@ -85,7 +92,6 @@ int main(int argc, char **argv)
     }
 
     cs_gpu.readN(cs.data(), M*N);
-    */
 
     // Проверяем корректность результатов
     double diff_sum = 0;
