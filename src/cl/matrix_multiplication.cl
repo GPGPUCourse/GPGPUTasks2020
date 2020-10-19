@@ -26,10 +26,16 @@ __kernel void matrix_multiplication(
     float res_mn = 0.0;
 
     for (unsigned int start_k = 0; start_k < K; start_k += LOCAL_WH) {
-        localA[local_m*LOCAL_WH + local_n] = aMK[m*K + start_k + local_n];
-        localB[local_m*LOCAL_WH + local_n] = bKN[(start_k + local_m)*N + n];
-
+        localA[local_m*LOCAL_WH + local_n] = start_k + local_n < K && m < M
+                                            ?aMK[m*K + start_k + local_n]
+                                            :0.0f;
+        localB[local_m*LOCAL_WH + local_n] = start_k + local_m < K && n < N
+                                            ?bKN[(start_k + local_m)*N + n]
+                                            :0.0f;
         barrier(CLK_LOCAL_MEM_FENCE);
+
+        //printf("a %d %d %d %d %f\n", m/LOCAL_WH*LOCAL_WH, start_k, local_m, local_n, localA[local_m*LOCAL_WH + local_n]);
+        //printf("b %d %d %d %d %f\n", start_k, n/LOCAL_WH*LOCAL_WH, local_m, local_n, localB[local_m*LOCAL_WH + local_n]);
 
         for(unsigned int local_k = 0; local_k < LOCAL_WH; ++local_k) {
             res_mn += localA[local_m*LOCAL_WH + local_k] * localB[local_k*LOCAL_WH + local_n];
@@ -38,5 +44,7 @@ __kernel void matrix_multiplication(
         barrier(CLK_LOCAL_MEM_FENCE);
     }
 
-    cMN[m*N + n] = res_mn;
+    if (m < M && n < N) {
+        cMN[m*N + n] = res_mn;
+    }
 }
