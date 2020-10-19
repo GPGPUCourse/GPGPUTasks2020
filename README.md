@@ -43,20 +43,65 @@
 Дополните набросок кода ниже так, чтобы не было гонок (желательно добавить поясняющие комментарии почему вам кажется что это работает):
 
 ```C++
+#define WORP_SIZE ...
+#define WORPS_AMOUNT ...
+// get_local_size(0) == WORP_SIZE * WORPS_AMOUNT
+
 __kernel do_some_work()
 {
     assert(get_group_id == [256, 1, 1]);
 
     __local disjoint_set = ...;
 
-    for (int iters = 0; iters < 100; ++iters) {      // потоки делают сто итераций
-        if (some_random_predicat(get_local_id(0))) { // предикат срабатывает очень редко (например шанс - 0.1%)
-            ...                        // на каждой итерации некоторые потоки
-            union(disjoint_set, ...);  // могут захотеть обновить нашу структурку
-            ...
+    __local int true_pred_sum[WORPS_AMOUNT];
+    __local int modifying = 0;
+
+    int worp_id = get_local_id(0) % WORP_SIZE;
+    int worp_num = get_local_id(0) / WORP_SIZE;
+
+    for (int iters = 0; iters < 100; ++iters) {
+        if (worp_id == 0) {
+            true_pred_sum[worp_num] = 0;
         }
+        // проинициализировали массив true_pred_sum
+
+        int true_pred = 0;
+        for (int id = worp_id; id < get_local_size(0); id += WORP_SIZE) {
+            true_pred += some_random_predicat(id);
+        }
+        // узнали для каких-то потоков каждого ворпа, есть ли какие-то потоки в других ворпах с истинным предикатом
+
+        if (true_pred) {
+            atomic_add(&true_pred_sum[worp_num], true_pred);
+        }
+        // теперь каждый элемент true_pred_sum - суммарное количество необходимых union-ов
+
+        if (true_pred_sum[worp_num] && iters > 0) {
+            barrier(CLK_LOCAL_MEM_FENCE);
+            // подождали, чтобы избежать WAR-гонки
+        }
+
+        int pred = some_random_predicat(get_local_id(0));
+        // pred говорит, нужно ли ещё этому потоку делать union
+        while (true_pred_sum[0] > 0) {
+            // крутимся, пока все потоки workgroup-ы не внесут свои изменения
+            while (pred) {
+                // зашедший сюда поток ждёт своей очереди, чтобы сделать union
+                if (atomic_cmpxchg(&modifying, 0, 1) == 0) {
+                    // сюда в workgroup-е одновременно зайдёт только один поток
+                    ...
+                    union(disjoint_set, ...);
+                    ...
+                    true_pred_sum[0]--;
+                    modifying = 0;
+                    pred = false;
+                }
+            }
+        }
+        // после выхода из while-а все изменения внесены; можно безопасно читать
+
         ...
-        tmp = get(disjoint_set, ...); // потоки постоянно хотят читать из структурки
+        tmp = get(disjoint_set, ...);
         ...
     }
 }
