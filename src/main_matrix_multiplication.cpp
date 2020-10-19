@@ -10,6 +10,13 @@
 #include <iostream>
 #include <stdexcept>
 
+#define LOCAL_WH 16
+
+void printMatrix(const float * data, unsigned int I, unsigned int J) {
+    for (unsigned int idx = 0; idx < I*J; ++idx) {
+       std::cout << data[idx] << ((idx+1)%J==0 ? "\n" : "\t");
+    }
+}
 
 int main(int argc, char **argv)
 {
@@ -41,13 +48,13 @@ int main(int argc, char **argv)
     {
         timer t;
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
-            for (int j = 0; j < M; ++j) {
-                for (int i = 0; i < N; ++i) {
+            for (int m = 0; m < M; ++m) {
+                for (int n = 0; n < N; ++n) {
                     float sum = 0.0f;
                     for (int k = 0; k < K; ++k) {
-                        sum += as.data()[j * K + k] * bs.data()[k * N + i];
+                        sum += as.data()[m * K + k] * bs.data()[k * N + n];
                     }
-                    cs.data()[j * N + i] = sum;
+                    cs.data()[m * N + n] = sum;
                 }
             }
             t.nextLap();
@@ -58,7 +65,6 @@ int main(int argc, char **argv)
 
     const std::vector<float> cs_cpu_reference = cs;
 
-    /*
     gpu::gpu_mem_32f as_gpu, bs_gpu, cs_gpu;
     as_gpu.resizeN(M*K);
     bs_gpu.resizeN(K*N);
@@ -67,16 +73,15 @@ int main(int argc, char **argv)
     as_gpu.writeN(as.data(), M*K);
     bs_gpu.writeN(bs.data(), K*N);
 
-    ocl::Kernel matrix_multiplication_kernel(matrix_multiplication, matrix_multiplication_length, "matrix_multiplication");
-    matrix_multiplication_kernel.compile();
+    std::string defines = "-D LOCAL_WH=" + std::to_string(LOCAL_WH);
+    ocl::Kernel matrix_multiplication_kernel(matrix_multiplication, matrix_multiplication_length, "matrix_multiplication", defines);
+    matrix_multiplication_kernel.compile(true);
 
     {
         timer t;
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
             // TODO
-            unsigned int work_group_size = 128;
-            unsigned int global_work_size = ...;
-            matrix_multiplication_kernel.exec(gpu::WorkSize(work_group_size, global_work_size), as_gpu, bs_gpu, cs_gpu, M, K, N);
+            matrix_multiplication_kernel.exec(gpu::WorkSize(LOCAL_WH, LOCAL_WH, N, M), as_gpu, bs_gpu, cs_gpu, M, K, N);
 
             t.nextLap();
         }
@@ -85,17 +90,17 @@ int main(int argc, char **argv)
     }
 
     cs_gpu.readN(cs.data(), M*N);
-    */
 
     // Проверяем корректность результатов
     double diff_sum = 0;
     for (int i = 0; i < M * N; ++i) {
         double a = cs[i];
         double b = cs_cpu_reference[i];
-        if (a != 0.0 && b != 0.0) {
+        if (a != 0.0 || b != 0.0) {
             double diff = fabs(a - b) / std::max(fabs(a), fabs(b));
             diff_sum += diff;
         }
+        //std::cout << (fabs(a - b) < 0.000000001) << ((i+1)%M == 0 ? "\n" : " ");
     }
 
     double diff_avg = diff_sum / (M * N);
