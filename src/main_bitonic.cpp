@@ -61,6 +61,7 @@ int main(int argc, char **argv)
         ocl::Kernel bitonic(bitonic_kernel, bitonic_kernel_length, "bitonic");
         ocl::Kernel sort_block(bitonic_kernel, bitonic_kernel_length, "sort_block");
         bitonic.compile();
+        sort_block.compile();
 
         timer t;
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
