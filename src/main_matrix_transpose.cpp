@@ -46,6 +46,11 @@ int main(int argc, char **argv)
         timer t;
         const int tile_size = 16;
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
+           // Для этой задачи естественнее использовать двухмерный NDRange. Чтобы это сформулировать
+           // в терминологии библиотеки - нужно вызвать другую вариацию конструктора WorkSize.
+           // В CLion удобно смотреть какие есть вариант аргументов в конструкторах:
+           // поставьте каретку редактирования кода внутри скобок конструктора WorkSize -> Ctrl+P -> заметьте что есть 2, 4 и 6 параметров
+           // - для 1D, 2D и 3D рабочего пространства соответственно
             matrix_transpose_kernel.exec(
                 gpu::WorkSize(tile_size,  tile_size, (K + tile_size - 1) / tile_size * tile_size, (M + tile_size - 1) / tile_size * tile_size), 
                 as_gpu, as_t_gpu, M, K
