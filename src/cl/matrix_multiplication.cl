@@ -1,4 +1,4 @@
-#define TILE_SIZE 32
+#define TILE_SIZE 16
 
 __kernel void matrix_multiplication(
     __global const float* a,

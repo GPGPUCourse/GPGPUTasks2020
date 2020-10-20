@@ -44,9 +44,12 @@ int main(int argc, char **argv)
 
     {
         timer t;
+        const int tile_size = 16;
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
-            matrix_transpose_kernel.exec(gpu::WorkSize(32,  32, (M + 31) / 32 * 32, (K + 31) / 32 * 32), as_gpu, as_t_gpu, M, K);
-
+            matrix_transpose_kernel.exec(
+                gpu::WorkSize(tile_size,  tile_size, (K + tile_size - 1) / tile_size * tile_size, (M + tile_size - 1) / tile_size * tile_size), 
+                as_gpu, as_t_gpu, M, K
+            );
             t.nextLap();
         }
         std::cout << "GPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
@@ -66,6 +69,5 @@ int main(int argc, char **argv)
             }
         }
     }
-
     return 0;
 }
