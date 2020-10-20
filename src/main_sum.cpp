@@ -18,13 +18,15 @@ void raiseFail(const T &a, const T &b, std::string message, std::string filename
 
 #define EXPECT_THE_SAME(a, b, message) raiseFail(a, b, message, __FILE__, __LINE__)
 
+#define VALS_IN_STEP 1024
+#define WORKGROUP_SIZE 128
 
 int main(int argc, char **argv)
 {
-    int benchmarkingIters = 10;
+    int benchmarkingIters = 1;
 
     unsigned int reference_sum = 0;
-    unsigned int n = 100;
+    unsigned int n = 100*1000*1000;
     std::vector<unsigned int> as(n, 0);
     FastRandom r(42);
     for (int i = 0; i < n; ++i) {
@@ -67,7 +69,10 @@ int main(int argc, char **argv)
         gpu::Context context;
         context.init(device.device_id_opencl);
         context.activate();
-        ocl::Kernel kernel(sum_kernel, sum_kernel_length, "sum");
+
+        std::string defines = "-D VALS_IN_STEP=" + std::to_string(VALS_IN_STEP)
+                            + " -D WORKGROUP_SIZE=" + std::to_string(WORKGROUP_SIZE);
+        ocl::Kernel kernel(sum_kernel, sum_kernel_length, "sum", defines);
 
         bool printLog = false;
         kernel.compile(printLog);
@@ -76,36 +81,32 @@ int main(int argc, char **argv)
         mem_gpu_const.resizeN(n);
         mem_gpu0.resizeN(n);
         mem_gpu1.resizeN(n);
-        mem_gpu_const.writeN(as.data(), n);
+        mem_gpu_const.writeN(as.data(), n); // нужно чтобы не копировать массив между бенчмарками
 
         {
-            // Должно совпадать с VALS_IN_STEP в sum.cl
-            const unsigned int vals_in_step = 16;
             timer t;
             for (int iter = 0; iter < benchmarkingIters; ++iter) {
                 unsigned int current_n = n;
-                const size_t workGroupSize = 128;
                 bool from0to1 = false;
                 bool firstCall = true;
                 while (current_n > 1) {
-                    const int next_n = gpu::divup(current_n, vals_in_step);
-                    const size_t global_work_size = gpu::divup(next_n, workGroupSize) * workGroupSize;
-                    from0to1 = !from0to1; // wiil be true initially
+                    const unsigned int next_n = gpu::divup(current_n, VALS_IN_STEP);
+                    const unsigned int global_work_size = gpu::divup(next_n, WORKGROUP_SIZE) * WORKGROUP_SIZE;
+                    from0to1 = !from0to1; // true в первой итерации
                     if (from0to1) {
                         if (firstCall) {
-                            kernel.exec(gpu::WorkSize(workGroupSize, global_work_size), mem_gpu_const, mem_gpu1, current_n);
+                            kernel.exec(gpu::WorkSize(WORKGROUP_SIZE, global_work_size), mem_gpu_const, mem_gpu1, current_n);
                             firstCall = false;
                         } else {
-                            kernel.exec(gpu::WorkSize(workGroupSize, global_work_size), mem_gpu0, mem_gpu1, current_n);
+                            kernel.exec(gpu::WorkSize(WORKGROUP_SIZE, global_work_size), mem_gpu0, mem_gpu1, current_n);
                         }
                     } else {
-                        kernel.exec(gpu::WorkSize(workGroupSize, global_work_size), mem_gpu1, mem_gpu0, current_n);
+                        kernel.exec(gpu::WorkSize(WORKGROUP_SIZE, global_work_size), mem_gpu1, mem_gpu0, current_n);
                     }
                     current_n = next_n;
-                    std::cout << "-----------------------------\n";
                 }
 
-                unsigned int gpu_sum;
+                unsigned int gpu_sum = 0; // ноль на случай n == 0
                 if (from0to1) {
                     mem_gpu1.readN(&gpu_sum, 1);
                 } else {
