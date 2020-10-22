@@ -63,7 +63,7 @@ int main(int argc, char **argv)
     context.init(device.device_id_opencl);
     context.activate();
 
-    int benchmarkingIters = 1;
+    int benchmarkingIters = 10;
     unsigned int n = 32 * 1024 * 1024;
     std::vector<unsigned int> as(n, 0);
     FastRandom r(n);
@@ -82,7 +82,7 @@ int main(int argc, char **argv)
             t.nextLap();
         }
         std::cout << "CPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
-        std::cout << "CPU: " << (n/1000/1000) / t.lapAvg() << " millions/s" << std::endl;
+        std::cout << "CPU: " << (n/1000./1000) / t.lapAvg() << " millions/s" << std::endl;
     }
 
     {
@@ -97,7 +97,7 @@ int main(int argc, char **argv)
             t.nextLap();
         }
         std::cout << "CPU Radix: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
-        std::cout << "CPU Radix: " << (n/1000/1000) / t.lapAvg() << " millions/s" << std::endl;
+        std::cout << "CPU Radix: " << (n/1000./1000) / t.lapAvg() << " millions/s" << std::endl;
 
         std::vector<unsigned int> &Res = ResInA ? RadixCpuA : RadixCpuB;
 
@@ -117,8 +117,9 @@ int main(int argc, char **argv)
         const unsigned int Mask = Pow2Value - 1;
         const unsigned int NumOfIterations = (sizeof(unsigned int) * 8 + Pow2 - 1) / Pow2;
         
-        const unsigned int WorkGroupSize = 64;
-        const unsigned int BlockSizeCD = 60;
+        const unsigned int WorkGroupPow2 = 6;
+        const unsigned int WorkGroupSize = 1 << WorkGroupPow2;
+        const unsigned int BlockSizeCD = 31;
         const unsigned int BlockSizeEO = 2;
 
         unsigned int CellSize = 1;
@@ -127,6 +128,7 @@ int main(int argc, char **argv)
         Defines += "-D POW2=" + std::to_string(Pow2) + " ";
         Defines += "-D MASK=" + std::to_string(Mask) + " ";
         Defines += "-D GROUP_SIZE=" + std::to_string(WorkGroupSize) + " ";
+        Defines += "-D GROUP_SIZE_POW2=" + std::to_string(WorkGroupPow2) + " ";
         Defines += "-D BLOCK_SIZE_CD=" + std::to_string(BlockSizeCD) + " ";
         Defines += "-D BLOCK_SIZE_EO=" + std::to_string(BlockSizeEO);
 
@@ -212,7 +214,7 @@ int main(int argc, char **argv)
             t.nextLap();
         }
         std::cout << "GPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
-        std::cout << "GPU: " << (n/1000/1000) / t.lapAvg() << " millions/s" << std::endl;
+        std::cout << "GPU: " << (n/1000./1000) / t.lapAvg() << " millions/s" << std::endl;
 
         Src->readN(as.data(), n);
     }
