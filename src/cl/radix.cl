@@ -11,7 +11,11 @@ __kernel void radix_sum(__global unsigned int* as, unsigned int shift, int N, __
 
     const unsigned int mask = 8 + 4 + 2 + 1;
     __local unsigned int local_a[WORK_GROUP_SIZE];
-    local_a[local_id] = as[id];
+    if (id < N) {
+        local_a[local_id] = as[id];
+    } else {
+        local_a[local_id] = 0;
+    }
 
     barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -21,7 +25,9 @@ __kernel void radix_sum(__global unsigned int* as, unsigned int shift, int N, __
         }
 
         for (int i = 0; i < WORK_GROUP_SIZE; ++i) {
-            bucket_cnt[(id/WORK_GROUP_SIZE) * 16 + ((local_a[i] >> shift) & mask)] += 1;
+            if (id + i < N) {
+                bucket_cnt[(id/WORK_GROUP_SIZE) * 16 + ((local_a[i] >> shift) & mask)] += 1;
+            }
         }
     }
 }
@@ -32,13 +38,16 @@ __kernel void radix_exchange(const __global unsigned int* as_gpu, __global unsig
                                   __global unsigned int* bucket_prefix_sum) {
     const unsigned int id = get_global_id(0);
     const unsigned int mask = 8 + 4 + 2 + 1;
-    unsigned int val = ((as_gpu[id] >> shift)&mask);
-    int sm_before = 0;
-    for (int i = 0; i < val; ++i) {
-        sm_before += bucket_prefix_sum[((n - 1)/WORK_GROUP_SIZE)*16 + i];
+    if (id < n) {
+        unsigned int val = ((as_gpu[id] >> shift)&mask);
+        int sm_before = 0;
+        for (int i = 0; i < val; ++i) {
+            sm_before += bucket_prefix_sum[((n - 1)/WORK_GROUP_SIZE)*16 + i];
+        }
+
+        const unsigned int new_id = sm_before + prefix_sum[id];
+        as_gpu_out[new_id] = as_gpu[id];
     }
-    const unsigned int new_id = sm_before + prefix_sum[id];
-    as_gpu_out[new_id] = as_gpu[id];
 }
 
 #define WORK_GROUP_SIZE 128
@@ -48,7 +57,11 @@ __kernel void bucket_cal_prefix_sum(__global unsigned int* bucket_sum, unsigned 
     unsigned int pos_sum = ((id + 1)* step - 1) * 16;
     __local unsigned int local_a[WORK_GROUP_SIZE];
     for (int i = 0; i < 16; ++i) {
-        local_a[local_id] = bucket_sum[pos_sum + i];
+        if (pos_sum + i < bucket_cnt * 16) {
+            local_a[local_id] = bucket_sum[pos_sum + i];
+        } else {
+            local_a[local_id] = 0;
+        }
         barrier(CLK_LOCAL_MEM_FENCE);
 
         if (local_id == 0) {
@@ -59,7 +72,10 @@ __kernel void bucket_cal_prefix_sum(__global unsigned int* bucket_sum, unsigned 
            }
         }
         barrier(CLK_LOCAL_MEM_FENCE);
-        bucket_sum[pos_sum + i] = local_a[local_id];
+
+        if (pos_sum + i < bucket_cnt * 16) {
+            bucket_sum[pos_sum + i] = local_a[local_id];
+        }
 
         barrier(CLK_LOCAL_MEM_FENCE);
     }
@@ -71,16 +87,23 @@ __kernel void prefix_sum_calc(__global unsigned int* as, unsigned int shift, int
     const unsigned int local_id = get_local_id(0);
 
     const unsigned int mask = 8 + 4 + 2 + 1;
-    unsigned int val = ((as[id] >> shift) & mask);
+    unsigned int val = 0;
+    if (id < N) {
+        val = ((as[id] >> shift) & mask);
+    }
     unsigned int sum = 0;
-    if ((id/WORK_GROUP_SIZE) > 0) {
+    if ((id/WORK_GROUP_SIZE) > 0 && id < N) {
         sum = bucket_sum[(id/WORK_GROUP_SIZE - 1) * 16 + val];
     }
 
     __local unsigned int local_a[WORK_GROUP_SIZE];
     __local unsigned int local_sum[16];
 
-    local_a[local_id] = as[id];
+    if (id < N) {
+       local_a[local_id] = as[id];
+    } else {
+       local_a[local_id] = 0;
+    }
 
     barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -92,13 +115,16 @@ __kernel void prefix_sum_calc(__global unsigned int* as, unsigned int shift, int
         for (int i = 0; i < WORK_GROUP_SIZE; ++i) {
             unsigned int lc_val = ((local_a[i] >> shift) & mask);
             local_a[i] = local_sum[lc_val];
-            local_sum[lc_val] += 1;
+            if (id + i < N) {
+                local_sum[lc_val] += 1;
+            }
         }
      }
 
     barrier(CLK_LOCAL_MEM_FENCE);
-
-    prefix_sum[id] = local_a[local_id] + sum;
+    if (id < N) {
+        prefix_sum[id] = local_a[local_id] + sum;
+    }
 }
 
 #define WORK_GROUP_SIZE 128
@@ -107,14 +133,16 @@ __kernel void recalc_prefix_sum(__global unsigned int* bucket_sum, unsigned int 
     const unsigned int local_id = get_local_id(0);
     unsigned int pos_sum = ((id + 1) * step - 1) * 16;
 
-    for (int i = 0; i < 16; ++i) {
-        unsigned int sum = 0;
-        if (id - local_id > 0) {
-               sum = bucket_sum[((id - local_id)*step - 1)*16 + i];
-        }
+    if (pos_sum < bucket_cnt * 16) {
+        for (int i = 0; i < 16; ++i) {
+            unsigned int sum = 0;
+            if (id - local_id > 0) {
+                   sum = bucket_sum[((id - local_id)*step - 1)*16 + i];
+            }
 
-        if (local_id != WORK_GROUP_SIZE - 1) {
-            bucket_sum[pos_sum + i] += sum;
+            if (local_id != WORK_GROUP_SIZE - 1) {
+                bucket_sum[pos_sum + i] += sum;
+            }
         }
     }
 }
