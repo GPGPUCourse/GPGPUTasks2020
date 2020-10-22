@@ -114,6 +114,10 @@ int main(int argc, char **argv)
         ocl::Kernel recalc_prefix_sum(radix_kernel, radix_kernel_length, "recalc_prefix_sum");
         ocl::Kernel prefix_sum_calc(radix_kernel, radix_kernel_length, "prefix_sum_calc");
         radix_sum.compile();
+        radix_exchange.compile();
+        bucket_cal_prefix_sum.compile();
+        recalc_prefix_sum.compile();
+        prefix_sum_calc.compile();
 
         timer t;
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
