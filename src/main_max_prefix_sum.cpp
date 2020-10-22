@@ -185,7 +185,7 @@ int main(int argc, char **argv)
             const_maxpref_v.writeN(as.data(), current_n);
             const_sum.writeN(as.data(), current_n);
 
-            std::cout << "sizeof(int) = " << sizeof(int) << "\n";
+            // std::cout << "sizeof(int) = " << sizeof(int) << "\n";
 
             auto debug_print = [&]() {
                 std::vector<unsigned> debug_maxpref_i(current_n);
@@ -229,7 +229,7 @@ int main(int argc, char **argv)
                 next_n = gpu::divup(current_n, VALS_IN_STEP);
 
                 while (current_n > 1) {
-                    // debug_print();
+                    //debug_print();
                     if (firstRun) {
                         firstRun = false;
                         inp2out = false;
@@ -255,7 +255,7 @@ int main(int argc, char **argv)
                     next_n = gpu::divup(current_n, VALS_IN_STEP);
                 }
 
-                // debug_print();
+                //debug_print();
                 inp2out = !inp2out;
 
                 int max_sum;

@@ -68,23 +68,25 @@ __kernel void max_prefix_sum(
 
     //if (loc_i == 0) PRINT_DEBUG
 
-    unsigned int thread_start = localId * (VALS_IN_STEP+1);
-    int maxpref_v = INT_MIN;
-    unsigned int maxpref_i = -1;
-    int sum = 0;
-    int sum_prev = 0;
-    for (int i = thread_start; i < thread_start + VALS_IN_STEP; ++i) {
-        sum = local_maxpref_v[i] + sum_prev;
-        sum_prev += local_sum[i];
-        if (sum > maxpref_v) {
-            maxpref_v = sum;
-            maxpref_i = local_maxpref_i[i];
+    if (loc_i < current_n) {
+        unsigned int thread_start = localId * (VALS_IN_STEP+1);
+        int maxpref_v = INT_MIN;
+        unsigned int maxpref_i = -1;
+        int sum = 0;
+        int sum_prev = 0;
+        for (int i = thread_start; i < thread_start + VALS_IN_STEP; ++i) {
+            sum = local_maxpref_v[i] + sum_prev;
+            sum_prev += local_sum[i];
+            if (sum > maxpref_v) {
+                maxpref_v = sum;
+                maxpref_i = local_maxpref_i[i];
+            }
         }
+        //if (loc_i < current_n) printf("wrote in %d: %d %d %d\n", loc_i, maxpref_i, maxpref_v, sum_prev);
+        out_maxpref_i[loc_i] = maxpref_i;
+        out_maxpref_v[loc_i] = maxpref_v;
+        out_sum[loc_i] = sum_prev;
     }
-    //if (loc_i < current_n) printf("wrote in %d: %d %d %d\n", loc_i, maxpref_i, maxpref_v, sum_prev);
-    out_maxpref_i[loc_i] = maxpref_i;
-    out_maxpref_v[loc_i] = maxpref_v;
-    out_sum[loc_i] = sum_prev;
 }
 #endif
 
