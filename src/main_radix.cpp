@@ -10,6 +10,7 @@
 #include <vector>
 #include <iostream>
 #include <stdexcept>
+#include <cstring>
 
 
 template<typename T>
