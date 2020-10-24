@@ -57,25 +57,58 @@ int main(int argc, char **argv)
     as_gpu.resizeN(n);
 
     {
-        ocl::Kernel bitonic(bitonic_kernel, bitonic_kernel_length, "bitonic");
-        bitonic.compile();
+      const unsigned int Pow2LocalSortSize = 10;
+      const unsigned int Pow2LocalSortSizeValue = 1 << Pow2LocalSortSize;
 
-        timer t;
-        for (int iter = 0; iter < benchmarkingIters; ++iter) {
-            as_gpu.writeN(as.data(), n);
+      std::string Defines = "-D POW2_LOCAL_SORT=" + std::to_string(Pow2LocalSortSize) + " ";
 
-            t.restart(); // Запускаем секундомер после прогрузки данных чтобы замерять время работы кернела, а не трансфер данных
+      Defines += "-D POW2_LOCAL_SORT_VALUE=" + std::to_string(Pow2LocalSortSizeValue) + " ";
 
-            unsigned int workGroupSize = 128;
-            unsigned int global_work_size = (n + workGroupSize - 1) / workGroupSize * workGroupSize;
-            bitonic.exec(gpu::WorkSize(workGroupSize, global_work_size),
-                         as_gpu, n);
-            t.nextLap();
-        }
-        std::cout << "GPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
-        std::cout << "GPU: " << (n/1000/1000) / t.lapAvg() << " millions/s" << std::endl;
+      ocl::Kernel BitonicLocalFirst(bitonic_kernel, bitonic_kernel_length, "BitonicLocalFirst", Defines);
+      ocl::Kernel BitonicLocal(bitonic_kernel, bitonic_kernel_length, "BitonicLocal", Defines);
+      ocl::Kernel BitonicFirst(bitonic_kernel, bitonic_kernel_length, "BitonicFirst", Defines);
+      ocl::Kernel Bitonic(bitonic_kernel, bitonic_kernel_length, "Bitonic", Defines);
+      
+      BitonicLocalFirst.compile();
+      BitonicLocal.compile();
+      BitonicFirst.compile();
+      BitonicFirst.compile();
 
-        as_gpu.readN(as.data(), n);
+      timer t;
+      for (int iter = 0; iter < benchmarkingIters; ++iter) {
+          as_gpu.writeN(as.data(), n);
+
+          t.restart(); // Запускаем секундомер после прогрузки данных чтобы замерять время работы кернела, а не трансфер данных
+
+          unsigned int WorkGroupSizeLocal = 64;
+          unsigned int GlobalWorkSizeLocal = (n + Pow2LocalSortSizeValue - 1) / Pow2LocalSortSizeValue * WorkGroupSizeLocal;
+          unsigned int WorkGroupSize = 64;
+          unsigned int GlobalWorkSize = (n / 2 + WorkGroupSize - 1) / WorkGroupSize * WorkGroupSize;
+
+          BitonicLocalFirst.exec(gpu::WorkSize(WorkGroupSizeLocal, GlobalWorkSizeLocal),
+                                 as_gpu, n);
+
+          for (unsigned int FirstStepSizeI = Pow2LocalSortSize; (1 << FirstStepSizeI) <= n; FirstStepSizeI++)
+          {
+            BitonicFirst.exec(gpu::WorkSize(WorkGroupSize, GlobalWorkSize),
+                              as_gpu, (1 << FirstStepSizeI), n);
+
+            for (int StepSizeI = FirstStepSizeI - 1; StepSizeI >= Pow2LocalSortSize; StepSizeI--)
+            {
+              Bitonic.exec(gpu::WorkSize(WorkGroupSize, GlobalWorkSize),
+                           as_gpu, (1 << StepSizeI), n);
+            }
+
+            BitonicLocal.exec(gpu::WorkSize(WorkGroupSizeLocal, GlobalWorkSizeLocal),
+                              as_gpu, n);
+          }
+
+          t.nextLap();
+      }
+      std::cout << "GPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
+      std::cout << "GPU: " << (n/1000/1000) / t.lapAvg() << " millions/s" << std::endl;
+
+      as_gpu.readN(as.data(), n);
     }
 
     // Проверяем корректность результатов
