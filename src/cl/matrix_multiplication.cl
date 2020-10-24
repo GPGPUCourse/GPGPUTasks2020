@@ -6,7 +6,7 @@
 
 #line 6
 
-#define TILE_SIZE 2
+#define TILE_SIZE 16
 __kernel void matrix_multiplication(__global const float *a,
                                     __global const float *b,
                                     __global float *c,
@@ -21,12 +21,16 @@ __kernel void matrix_multiplication(__global const float *a,
 
     float sum = 0.0f;
 
-    __local float a_tile[TILE_SIZE][TILE_SIZE];
-    __local float b_tile[TILE_SIZE][TILE_SIZE];
+    __local float a_tile[TILE_SIZE][TILE_SIZE + 1];
+    __local float b_tile[TILE_SIZE][TILE_SIZE + 1];
 
+    const int K_border = (K + TILE_SIZE - 1) / TILE_SIZE * TILE_SIZE;
     for (int k = 0; k * TILE_SIZE < K; ++k) {
-        a_tile[local_x][local_y] = a[K * j + TILE_SIZE * k + local_x];
-        b_tile[local_x][local_y] = b[N * (k * TILE_SIZE + local_y) + i];
+        const int  idx_1 = K * j + TILE_SIZE * k + local_x;
+        a_tile[local_x][local_y] = a[idx_1];
+        const int  idx_2 = N * i + TILE_SIZE * k + local_y;
+        b_tile[local_x][local_y] = b[N * i + TILE_SIZE * k + local_y];
+
         barrier(CLK_LOCAL_MEM_FENCE);
         for (int t = 0; t < TILE_SIZE; ++t)
             sum += a_tile[t][local_y] * b_tile[local_x][t];

@@ -32,10 +32,10 @@ int main(int argc, char **argv)
 
     FastRandom r(M+K+N);
     for (unsigned int i = 0; i < as.size(); ++i) {
-        as[i] = r.nextf();
+        as[i] = int(r.nextf()) % 8;
     }
     for (unsigned int i = 0; i < bs.size(); ++i) {
-        bs[i] = r.nextf();
+        bs[i] = int(r.nextf()) % 8;
     }
     std::cout << "Data generated for M=" << M << ", K=" << K << ", N=" << N << "!" << std::endl;
 
@@ -59,11 +59,11 @@ int main(int argc, char **argv)
 
     const std::vector<float> cs_cpu_reference = cs;
 
-    gpu::gpu_mem_32f as_gpu, bs_gpu, cs_gpu, cs_gpu_t;
+    gpu::gpu_mem_32f as_gpu, bs_gpu, cs_gpu, bs_gpu_t;
     as_gpu.resizeN(M*K);
     bs_gpu.resizeN(K*N);
+    bs_gpu_t.resizeN(K*N);
     cs_gpu.resizeN(M*N);
-    cs_gpu_t.resizeN(M*N);
 
     as_gpu.writeN(as.data(), M*K);
     bs_gpu.writeN(bs.data(), K*N);
@@ -76,15 +76,15 @@ int main(int argc, char **argv)
         timer t;
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
             // use transponse
-            unsigned int wg_side = 2;
+            unsigned int wg_side = 16;
             unsigned int g_work_size_x = (M + wg_side - 1) / wg_side * wg_side;
             unsigned int g_work_size_y = (N + wg_side - 1) / wg_side * wg_side;
+            unsigned int g_work_size_z = (K + wg_side - 1) / wg_side * wg_side;
             matrix_transpose_kernel.exec(
-                    gpu::WorkSize(wg_side, wg_side, g_work_size_x, g_work_size_y),
-                    cs_gpu, cs_gpu_t, M, K);
+                    gpu::WorkSize(wg_side, wg_side, g_work_size_z, g_work_size_y),
+                    bs_gpu, bs_gpu_t, M, K);
 
-            matrix_multiplication_kernel.exec(gpu::WorkSize(wg_side, wg_side, g_work_size_x, g_work_size_y), as_gpu, bs_gpu, cs_gpu_t, M, K, N);
-            cs_gpu.swap(cs_gpu_t);
+            matrix_multiplication_kernel.exec(gpu::WorkSize(wg_side, wg_side, g_work_size_x, g_work_size_y), as_gpu, bs_gpu_t, cs_gpu, M, K, N);
             t.nextLap();
         }
         std::cout << "GPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
