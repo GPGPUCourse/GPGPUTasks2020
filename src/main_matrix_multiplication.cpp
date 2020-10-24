@@ -32,10 +32,10 @@ int main(int argc, char **argv)
 
     FastRandom r(M+K+N);
     for (unsigned int i = 0; i < as.size(); ++i) {
-        as[i] = int(r.nextf()) % 8;
+        as[i] = r.nextf();
     }
     for (unsigned int i = 0; i < bs.size(); ++i) {
-        bs[i] = int(r.nextf()) % 8;
+        bs[i] = r.nextf();
     }
     std::cout << "Data generated for M=" << M << ", K=" << K << ", N=" << N << "!" << std::endl;
 
