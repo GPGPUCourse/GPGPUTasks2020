@@ -1,4 +1,4 @@
-#define WORK_GROUP_SIZE 256
+п»ї#define WORK_GROUP_SIZE 256
 
 __kernel void bitonic_local(__global float* as, unsigned int batch_size, unsigned int size, unsigned int n) {
 	unsigned int local_id = get_local_id(0);
@@ -12,9 +12,9 @@ __kernel void bitonic_local(__global float* as, unsigned int batch_size, unsigne
 
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
-	// Можем вычислить "тон" последовательности
-	// 1 - возрастающая
-	// 0 - убывающая
+	// РњРѕР¶РµРј РІС‹С‡РёСЃР»РёС‚СЊ "С‚РѕРЅ" РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё
+	// 1 - РІРѕР·СЂР°СЃС‚Р°СЋС‰Р°СЏ
+	// 0 - СѓР±С‹РІР°СЋС‰Р°СЏ
 	int tone_flag = global_id % (2 * size) < size;
 
 	while (batch_size >= 1) {
@@ -22,8 +22,8 @@ __kernel void bitonic_local(__global float* as, unsigned int batch_size, unsigne
 		if (global_id % (2 * batch_size) < batch_size && global_id + batch_size < n) {
 			float a = batch[local_id];
 			float b = batch[local_id + batch_size];
-			// В случае, если нарушен ожидаемый порядок
-			// значение (a > b) будет равно tone_flag
+			// Р’ СЃР»СѓС‡Р°Рµ, РµСЃР»Рё РЅР°СЂСѓС€РµРЅ РѕР¶РёРґР°РµРјС‹Р№ РїРѕСЂСЏРґРѕРє
+			// Р·РЅР°С‡РµРЅРёРµ (a > b) Р±СѓРґРµС‚ СЂР°РІРЅРѕ tone_flag
 			if ((a > b) == tone_flag) {
 				batch[local_id] = b;
 				batch[local_id + batch_size] = a;
@@ -43,16 +43,16 @@ __kernel void bitonic_local(__global float* as, unsigned int batch_size, unsigne
 __kernel void bitonic(__global float* as, unsigned int batch_size, unsigned int size, unsigned int n) {
 	unsigned int global_id = get_global_id(0);
 
-	// Можем вычислить "тон" последовательности
-	// 1 - возрастающая
-	// 0 - убывающая
+	// РњРѕР¶РµРј РІС‹С‡РёСЃР»РёС‚СЊ "С‚РѕРЅ" РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё
+	// 1 - РІРѕР·СЂР°СЃС‚Р°СЋС‰Р°СЏ
+	// 0 - СѓР±С‹РІР°СЋС‰Р°СЏ
 	int tone_flag = global_id % (2 * size) < size;
 
 	if (global_id % (2 * batch_size) < batch_size && global_id + batch_size < n) {
 		float a = as[global_id];
 		float b = as[global_id + batch_size];
-		// В случае, если нарушен ожидаемый порядок
-		// значение (a > b) будет равно tone_flag
+		// Р’ СЃР»СѓС‡Р°Рµ, РµСЃР»Рё РЅР°СЂСѓС€РµРЅ РѕР¶РёРґР°РµРјС‹Р№ РїРѕСЂСЏРґРѕРє
+		// Р·РЅР°С‡РµРЅРёРµ (a > b) Р±СѓРґРµС‚ СЂР°РІРЅРѕ tone_flag
 		if ((a > b) == tone_flag) {
 			as[global_id] = b;
 			as[global_id + batch_size] = a;
