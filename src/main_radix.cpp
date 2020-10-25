@@ -108,12 +108,11 @@ int main(int argc, char **argv)
                 radix.exec(gpu::WorkSize(WGS, global_work_size),
                            *from, *to, prefix_sums_gpu, n, bit_number);
 
-                t.nextLap();
-
                 auto tmp = from;
                 from = to;
                 to = tmp;
             }
+            t.nextLap();
         }
         std::cout << "GPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
         std::cout << "GPU: " << (n/1000/1000) / t.lapAvg() << " millions/s" << std::endl;
