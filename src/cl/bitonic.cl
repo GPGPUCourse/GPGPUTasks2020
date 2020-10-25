@@ -1,5 +1,29 @@
 #define WorkGroupSize 128
 
+#define swapper_internal                                                       \
+  unsigned int i1 = (id / s) * 2 * s + (id % s);                               \
+  unsigned int i2 = i1 + s;                                                    \
+                                                                               \
+  if (offset + i1 < n && offset + i2 < n) {                                    \
+                                                                               \
+    float a = as[i1];                                                          \
+    float b = as[i2];                                                          \
+                                                                               \
+    if (((a > b) && up) || ((a < b) && !up)) {                                 \
+      as[i1] = b;                                                              \
+      as[i2] = a;                                                              \
+    }                                                                          \
+  }
+
+// Есть ли способо посимпатичнее это сделать ?
+void swapper_local(__local float *as, unsigned int n, unsigned int offset,
+                   unsigned int id, unsigned int s, bool up) {
+  swapper_internal
+}
+
+void swapper_global(__global float *as, unsigned int n, unsigned int offset,
+                    unsigned int id, unsigned int s, bool up){swapper_internal}
+
 __kernel void bitonic_local(__global float *as, unsigned int n,
                             unsigned int kSize, unsigned int s_) {
   unsigned int g_id = get_global_id(0);
@@ -19,27 +43,8 @@ __kernel void bitonic_local(__global float *as, unsigned int n,
   unsigned int offset = (g_id / get_local_size(0)) * get_local_size(0);
 
   for (unsigned int s = s_; s > 0; s >>= 1) {
+    swapper_local(as_local, n, offset, l_id, s, up);
 
-    unsigned int i1 = (l_id / s) * 2 * s + (l_id % s);
-    unsigned int i2 = i1 + s;
-
-    if (offset + i1 < n && offset + i2 < n) {
-
-    //  for (int i = 0; i < n; ++i) {
-    //    if (g_id == i)
-    //      printf("%u | ", offset);
-    //  }
-    //  if (g_id == 0)
-    //    printf("\n");
-
-      float a = as_local[i1];
-      float b = as_local[i2];
-
-      if (((a > b) && up) || ((a < b) && !up)) {
-        as_local[i1] = b;
-        as_local[i2] = a;
-      }
-    }
     barrier(CLK_LOCAL_MEM_FENCE);
   }
   if (2 * g_id < n)
@@ -57,17 +62,5 @@ __kernel void bitonic(__global float *as, unsigned int n, unsigned int kSize,
 
   bool up = (g_id / kSize) % 2 == 0;
 
-  unsigned int i1 = (g_id / s) * 2 * s + (g_id % s);
-  unsigned int i2 = i1 + s;
-
-  if (i1 < n && i2 < n) {
-
-    float a = as[i1];
-    float b = as[i2];
-
-    if (((a > b) && up) || ((a < b) && !up)) {
-      as[i1] = b;
-      as[i2] = a;
-    }
-  }
+  swapper_global(as, n, 0, g_id, s, up);
 }
