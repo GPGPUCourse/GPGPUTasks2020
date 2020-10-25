@@ -25,25 +25,11 @@ __kernel void merge(const __global float * as,  __global float * as_out, int sor
             rgh = md;
         }
     }
-    
+
     if (lft + sorted_len < blc_id + 1) {
         as_out[id] = as[blc_start + blc_id - sorted_len];
     } else if (blc_id + 1 > sorted_len && as[sc_blc - 1] < as[sc_blc]) {
         as_out[id] = as[id];
-    } else if (blc_id + 1 > sorted_len && as[blc_start] > as[sc_blc + sorted_len - 1]) {
-        as_out[id] = as[blc_start + blc_id - sorted_len];
-    } else if (lft == 0 && blc_id - lft == 0) {
-        if (as[sc_blc] < as[blc_start]) {
-            as_out[id] = as[sc_blc];
-        } else {
-            as_out[id] = as[blc_start];
-        }
-    } else if (lft == 0) {
-       if (as[blc_start] < as[sc_blc + blc_id  - lft]) {
-          as_out[id] = as[blc_start];
-       } else {
-          as_out[id] = as[sc_blc + blc_id  - lft];
-       }
     } else if (lft < sorted_len && as[blc_start + lft] < as[sc_blc + blc_id  - lft]) {
         as_out[id] = as[blc_start + lft];
     } else {
