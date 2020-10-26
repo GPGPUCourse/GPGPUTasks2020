@@ -13,8 +13,6 @@ __kernel void radix_setup(
 
     if (iGlobal < n) {
         counts[iGlobal + 1] = (as[iGlobal] >> bit) & 1;
-    } else {
-        counts[iGlobal + 1] = 0;
     }
 }
 
@@ -29,7 +27,7 @@ __kernel void radix_gather(
     __local unsigned int asLocal[LOCAL_SIZE];
    
     if (iGlobal < n) {
-        asLocal[iGroup] = as[iGlobal];
+        asLocal[iGroup] = as[iGlobal + 1];
     } else {
         asLocal[iGroup] = 0;
     }
@@ -43,7 +41,7 @@ __kernel void radix_gather(
     }
 
     if (iGlobal < n) {
-        as[iGlobal] = asLocal[iGroup];
+        as[iGlobal + 1] = asLocal[iGroup];
     }
 }
 
@@ -52,10 +50,10 @@ __kernel void radix_propagate(
     const unsigned int n
 ) {
     const size_t iGlobal = get_global_id(0);
-    const size_t groupOffset = get_global_offset(0);
+    const size_t iGroup = get_local_id(0);
 
-    if (iGlobal % LOCAL_SIZE) {
-        as[iGlobal] += as[groupOffset];
+    if (iGroup > 0) {
+        as[iGlobal + 1] += as[iGlobal + 1 - iGroup];
     }
 }
 
@@ -66,34 +64,44 @@ __kernel void radix_move(
     __global unsigned int *bs
 ) {
     const size_t iGroup = get_group_id(0);
-    const size_t groupOffset = get_global_offset(0);
-    const size_t iGlobal = groupOffset + iGroup;
-    
-    const size_t ones = counts[n];
-    const size_t zeros = n - ones;
+    const size_t iGlobal = get_global_id(0);
 
-    const size_t isZero = iGlobal + ones < n;
-    const size_t indexToSearch = isZero ? iGlobal - counts[iGlobal] : zeros + counts[iGlobal];
-    
-    size_t l = 0;
-    size_t r = n + 1;
-    while (l + 1 < r) {
-        const size_t m = (l + r) >> 1;
-        
-        size_t index;
-        if (isZero) {
-            index = m - counts[m];
-        } else {
-            index = zeros + counts[m];
-        }
+    const size_t zeros = n - counts[n];
 
-        if (index > indexToSearch) {
-            r = m;
-        } else {
-            l = m;
-        }
+    if (iGlobal < n) {
+        const size_t index = 
+            counts[iGlobal + 1] == counts[iGlobal]
+            ? iGlobal - counts[iGlobal]
+            : zeros + counts[iGlobal];
+            
+        bs[index] = as[iGlobal];
     }
-    barrier(CLK_GLOBAL_MEM_FENCE); // just to synchronize everything
 
-    bs[iGlobal] = as[l - 1];
+    // const size_t ones = counts[n];
+    // const size_t zeros = n - ones;
+
+    // const size_t isZero = iGlobal + ones < n;
+    // const size_t indexToSearch = isZero ? iGlobal - counts[iGlobal] : zeros + counts[iGlobal];
+    
+    // size_t l = 0;
+    // size_t r = n + 1;
+    // while (l + 1 < r) {
+    //     const size_t m = (l + r) >> 1;
+        
+    //     size_t index;
+    //     if (isZero) {
+    //         index = m - counts[m];
+    //     } else {
+    //         index = zeros + counts[m];
+    //     }
+
+    //     if (index > indexToSearch) {
+    //         r = m;
+    //     } else {
+    //         l = m;
+    //     }
+    // }
+    // barrier(CLK_GLOBAL_MEM_FENCE); // just to synchronize everything
+
+    // bs[iGlobal] = as[l - 1];
 }

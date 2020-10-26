@@ -44,13 +44,14 @@ int main(int argc, char **argv)
     context.activate();
 
     int benchmarkingIters = 1;//10;
-    unsigned int n = 16;//32 * 1024 * 1024;
+    unsigned int n = 16;// 32 * 1024 * 1024;
     std::vector<unsigned int> as(n, 0);
     FastRandom r(n);
     for (unsigned int i = 0; i < n; ++i) {
-        as[i] = (unsigned int) r.next(0, 16);//std::numeric_limits<int>::max());
+        as[i] = (unsigned int) r.next(0, 100);// std::numeric_limits<int>::max());
     }
     std::cout << "Data generated for n=" << n << "!" << std::endl;
+    preview(as);
 
     std::vector<unsigned int> cpu_sorted;
     {
@@ -115,11 +116,17 @@ int main(int argc, char **argv)
                     gpu::WorkSize(workGroupSize, global_work_size),
                     counts_gpu, n
                 );
+                
+                counts_gpu.readN(as.data(), n);
+                preview(as);
 
                 radix_move.exec(
                     gpu::WorkSize(workGroupSize, global_work_size),
                     bit % 2 ? bs_gpu : as_gpu, n, counts_gpu, bit % 2 ? as_gpu : bs_gpu
                 );
+
+                (bit % 2 ? as_gpu : bs_gpu).readN(as.data(), n);
+                preview(as);
             }
             t.nextLap();
         }
