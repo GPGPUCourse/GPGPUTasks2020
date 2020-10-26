@@ -32,7 +32,7 @@ int main(int argc, char **argv)
     context.init(device.device_id_opencl);
     context.activate();
 
-    int benchmarkingIters = 1;///10;
+    int benchmarkingIters = 10;
     unsigned int n = 32 * 1024 * 1024;
     std::vector<unsigned int> as(n, 0);
     FastRandom r(n);
@@ -61,7 +61,7 @@ int main(int argc, char **argv)
 		tmp[1].resizeN(n);
 		gpu::gpu_mem_32u prefix_sums;
 		prefix_sums.resizeN(WG_COUNT);
-		
+
 		ocl::Kernel radix(radix_kernel, radix_kernel_length, "radix");
 		ocl::Kernel prefix_local(radix_kernel, radix_kernel_length, "prefix_local");
 		ocl::Kernel prefix_global(radix_kernel, radix_kernel_length, "prefix_global");
@@ -98,10 +98,10 @@ int main(int argc, char **argv)
     for (int i = 0; i < n; ++i) {
         EXPECT_THE_SAME(as[i], cpu_sorted[i], "GPU results should be equal to CPU results!");
     }
-	
+
 	/*
 	//optimize
-	
+
 	{
         unsigned int WG_SIZE=256;
 		unsigned int WG_COUNT=n/WG_SIZE/2;
@@ -110,7 +110,7 @@ int main(int argc, char **argv)
 		tmp[1].resizeN(n);
 		gpu::gpu_mem_32u prefix_sums;
 		prefix_sums.resizeN(WG_COUNT);
-		
+
 		ocl::Kernel radix_2(radix_kernel, radix_kernel_length, "radix_2");
 		ocl::Kernel prefix_local_2(radix_kernel, radix_kernel_length, "prefix_local_2");
 		ocl::Kernel prefix_global_2(radix_kernel, radix_kernel_length, "prefix_global_2");
