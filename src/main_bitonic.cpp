@@ -13,16 +13,28 @@
 
 
 template<typename T>
-void raiseFail(const T &a, const T &b, std::string message, std::string filename, int line)
+void raiseFail(size_t i, const T &a, const T &b, std::string message, std::string filename, int line)
 {
     if (a != b) {
-        std::cerr << message << " But " << a << " != " << b << ", " << filename << ":" << line << std::endl;
+        std::cerr << message << " But " << a << " != " << b << " at " << i << ", " << filename << ":" << line << std::endl;
         throw std::runtime_error(message);
     }
 }
 
-#define EXPECT_THE_SAME(a, b, message) raiseFail(a, b, message, __FILE__, __LINE__)
+#define EXPECT_THE_SAME(i, a, b, message) raiseFail(i, a, b, message, __FILE__, __LINE__)
 
+// #define PREVIEW 16
+#define MAX 179179
+
+template<typename T>
+void preview(const std::vector<T> &a) {
+#ifdef PREVIEW
+    for (size_t i = 0; i < std::min(a.size(), (size_t) PREVIEW); ++i) {
+        std::cout << a[i] << " ";
+    }
+    std::cout << "\n";
+#endif
+}
 
 int main(int argc, char **argv)
 {
@@ -33,10 +45,10 @@ int main(int argc, char **argv)
     context.activate();
 
     int benchmarkingIters = 10;
-    unsigned int n = 32 * 1024 * 1024;
+    size_t n = 32 * 1024 * 1024;
     std::vector<float> as(n, 0);
     FastRandom r(n);
-    for (unsigned int i = 0; i < n; ++i) {
+    for (size_t i = 0; i < n; ++i) {
         as[i] = r.nextf();
     }
     std::cout << "Data generated for n=" << n << "!" << std::endl;
@@ -52,36 +64,58 @@ int main(int argc, char **argv)
         std::cout << "CPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
         std::cout << "CPU: " << (n/1000/1000) / t.lapAvg() << " millions/s" << std::endl;
     }
-/*
+    preview(cpu_sorted);
+
+    const size_t workGroupSize = 256;
+    const size_t initialStep = 8;
+
+    const size_t global_work_size = (n + workGroupSize - 1) / workGroupSize * workGroupSize;
+            
     gpu::gpu_mem_32f as_gpu;
-    as_gpu.resizeN(n);
+    as.resize(global_work_size, MAX); // some temporary values for sorting
+    as_gpu.resizeN(global_work_size);
 
     {
-        ocl::Kernel bitonic(bitonic_kernel, bitonic_kernel_length, "bitonic");
-        bitonic.compile();
+        ocl::Kernel bitonic_local(
+            bitonic_kernel, bitonic_kernel_length, "bitonic", 
+            "-DLOCAL_SIZE=" + std::to_string(workGroupSize)
+        );
+        bitonic_local.compile();
+
+        ocl::Kernel bitonic_global(bitonic_kernel, bitonic_kernel_length, "bitonic");
+        bitonic_global.compile();
 
         timer t;
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
-            as_gpu.writeN(as.data(), n);
+            as_gpu.writeN(as.data(), global_work_size);
 
             t.restart(); // Запускаем секундомер после прогрузки данных чтобы замерять время работы кернела, а не трансфер данных
 
-            unsigned int workGroupSize = 128;
-            unsigned int global_work_size = (n + workGroupSize - 1) / workGroupSize * workGroupSize;
-            bitonic.exec(gpu::WorkSize(workGroupSize, global_work_size),
-                         as_gpu, n);
+            bitonic_local.exec(
+                gpu::WorkSize(workGroupSize, global_work_size), 
+                as_gpu, (unsigned int) global_work_size, (unsigned int) initialStep, 0
+            );
+            //                       V -- boxes up to workGroupSize were already sorted with local memory
+            for (size_t globalStep = initialStep; (1 << globalStep) <= 2 * global_work_size; ++globalStep) {
+                for (size_t subStep = globalStep; subStep > 0; --subStep) {
+                    bitonic_global.exec(
+                        gpu::WorkSize(workGroupSize, global_work_size / 2), 
+                        as_gpu, (unsigned int) global_work_size, (unsigned int) globalStep, (unsigned int) subStep
+                    );
+                }
+            }
             t.nextLap();
         }
         std::cout << "GPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
         std::cout << "GPU: " << (n/1000/1000) / t.lapAvg() << " millions/s" << std::endl;
 
         as_gpu.readN(as.data(), n);
+        preview(as);
     }
 
     // Проверяем корректность результатов
     for (int i = 0; i < n; ++i) {
-        EXPECT_THE_SAME(as[i], cpu_sorted[i], "GPU results should be equal to CPU results!");
+        EXPECT_THE_SAME(i, as[i], cpu_sorted[i], "GPU results should be equal to CPU results!");
     }
-*/
     return 0;
 }
