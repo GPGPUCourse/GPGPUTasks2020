@@ -80,62 +80,79 @@ int main(int argc, char **argv)
             context.init(device.device_id_opencl);
             context.activate();
 
-            unsigned int work_group_size = 128;
-            unsigned int global_work_size = (n + work_group_size - 1) / work_group_size * work_group_size;
+            unsigned int wg_size = 128;
+            unsigned int global_work_size = (n + wg_size - 1) / wg_size * wg_size;
 
             gpu::gpu_mem_32i as_gpu;
             as_gpu.resizeN(n);
             as_gpu.writeN(as.data(), n);
 
+            gpu::gpu_mem_32i ps_gpu;
+            ps_gpu.resizeN(n);
+            as_gpu.copyToN(ps_gpu, n);
 
-            gpu::gpu_mem_32i as_gpu_copy;
-            as_gpu_copy.resizeN(n);
-            as_gpu.copyToN(as_gpu_copy, n);
+            gpu::gpu_mem_32i as_gpu_origin;
+            as_gpu_origin.resizeN(n);
+            as_gpu.copyToN(as_gpu_origin, n);
+
+            gpu::gpu_mem_32i ps_gpu_origin;
+            ps_gpu_origin.resizeN(n);
+            as_gpu.copyToN(ps_gpu_origin, n);
+
+            std::vector<int> indexes(n);
+            for (auto i = 0; i < n; ++i) {
+                indexes[i] = i + 1;
+            }
+            gpu::gpu_mem_32i idx_gpu;
+            idx_gpu.resizeN(n);
+            idx_gpu.writeN(indexes.data(), n);
+
+            gpu::gpu_mem_32i idx_gpu_origin;
+            idx_gpu_origin.resizeN(n);
+            idx_gpu.copyToN(idx_gpu_origin, n);
+
             {
-                ocl::Kernel kernel(max_prefix_sum_kernel, max_prefix_sum_kernel_length, "max_prefix_sum");
+                std::string defines = "-D WORK_GROUP_SIZE=" + std::to_string(wg_size);
+                ocl::Kernel kernel(max_prefix_sum_kernel, max_prefix_sum_kernel_length, "max_prefix_sum", defines);
                 bool print_log{false};
+
                 kernel.compile(print_log);
                 timer t;
+
                 for (int iter = 0; iter < benchmarkingIters; ++iter) {
                     int max_sum = 0;
-                    int sum = 0;
                     int result = 0;
-                    for (int i = global_work_size; i > 1; i /= 2)
-                    {
-                        gpu::gpu_mem_32i s_gpu_out;
-                        s_gpu_out.resizeN(i / 2);
-                        gpu::gpu_mem_32i p_gpu_out;
-                        p_gpu_out.resizeN(i / 2);
-                        kernel.exec(gpu::WorkSize(work_group_size, global_work_size),
-                                    as_gpu, as_gpu_copy, i, s_gpu_out, p_gpu_out);
 
-                        as_gpu.clmem();
-                        as_gpu.resizeN(i / 2);
-                        s_gpu_out.copyToN(as_gpu, i / 2);
-
-
-                        as_gpu_copy.clmem();
-                        as_gpu_copy.resizeN(i / 2);
-                        p_gpu_out.copyToN(as_gpu_copy, i / 2);
-
-//                        std::vector<int> tmp_p{i / 2};
-//                        {
-//                            p_gpu_out.readN(tmp_p.data(), i / 2);
-//                        }
-
-//                        std::vector<int> tmp_s{i / 2};
-//                        s_gpu_out.readN(tmp_s.data(), i / 2);
+                    if (iter != 0) {
+                        t.stop();  // there is really no need to take this time into account
+                        as_gpu.resizeN(n);
+                        as_gpu_origin.copyToN(as_gpu, n);
+                        ps_gpu.resizeN(n);
+                        ps_gpu_origin.copyToN(ps_gpu, n);
+                        idx_gpu.resizeN(n);
+                        idx_gpu_origin.copyToN(idx_gpu, n);
+                        t.start();
                     }
-                    as_gpu_copy.readN(&max_sum, 1);
-                    if (max_sum < 0) {
-                        max_sum = 0;
-                    } else {
-                        int sum = 0;
-                        while(sum != max_sum) {
-                            sum += as[++result - 1];
-                        }
+                    gpu::gpu_mem_32i as_out;
+                    gpu::gpu_mem_32i ps_out;
+                    gpu::gpu_mem_32i idx_out;
+
+                    for (unsigned int size = global_work_size; size > 1; size = (size + wg_size - 1) / wg_size * wg_size / wg_size) {
+                        const auto out_size = size / wg_size;
+
+                        as_out.resizeN(0 < out_size ? out_size : 1);
+                        ps_out.resizeN(0 < out_size ? out_size : 1);
+                        idx_out.resizeN(0 < out_size ? out_size : 1);
+
+                        kernel.exec(gpu::WorkSize(wg_size, size), as_gpu, ps_gpu, idx_gpu, size == global_work_size ? n : size, as_out, ps_out, idx_out);
+
+                        as_gpu.swap(as_out);
+                        ps_gpu.swap(ps_out);
+                        idx_gpu.swap(idx_out);
                     }
 
+                    ps_gpu.readN(&max_sum, 1);
+                    idx_gpu.readN(&result, 1);
                     EXPECT_THE_SAME(reference_max_sum, max_sum, "GPU result should be consistent!");
                     EXPECT_THE_SAME(reference_result, result, "GPU result should be consistent!");
                     t.nextLap();
