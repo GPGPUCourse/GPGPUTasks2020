@@ -8,6 +8,7 @@
 #include "cl/radix_cl.h"
 
 #include <vector>
+#include <functional>
 #include <iostream>
 #include <stdexcept>
 
@@ -23,16 +24,34 @@ void raiseFail(size_t i, const T &a, const T &b, std::string message, std::strin
 
 #define EXPECT_THE_SAME(i, a, b, message) raiseFail(i, a, b, message, __FILE__, __LINE__)
 
-#define PREVIEW 16
+#define DEBUG_OUTPUT
+
+#ifdef DEBUG_OUTPUT
+#   define PREVIEW 16
+#else
+#   define PREVIEW 0
+#endif
 
 template<typename T>
 void preview(const std::vector<T> &a) {
-#ifdef PREVIEW
-    for (size_t i = 0; i < std::min(a.size(), (size_t) PREVIEW); ++i) {
+    const size_t size = std::min(a.size(), (size_t) PREVIEW);
+    for (size_t i = 0; i < size; ++i) {
         std::cout << a[i] << " ";
     }
-    std::cout << "\n";
-#endif
+    if (size > 0)
+        std::cout << "\n";
+}
+
+template<typename T>
+void preview(const gpu::shared_device_buffer_typed<T> &a) {
+    const size_t size = std::min(a.number(), (size_t) PREVIEW);
+    
+    if (size > 0) {
+        std::vector<T> tmp(size);
+        a.readN(tmp.data(), size);
+
+        preview(tmp);
+    }
 }
 
 int main(int argc, char **argv)
@@ -44,11 +63,11 @@ int main(int argc, char **argv)
     context.activate();
 
     int benchmarkingIters = 1;//10;
-    unsigned int n = 16;// 32 * 1024 * 1024;
+    unsigned int n = 257;//32 * 1024 * 1024;
     std::vector<unsigned int> as(n, 0);
     FastRandom r(n);
     for (unsigned int i = 0; i < n; ++i) {
-        as[i] = (unsigned int) r.next(0, 100);// std::numeric_limits<int>::max());
+        as[i] = (unsigned int) r.next(0, std::numeric_limits<int>::max());
     }
     std::cout << "Data generated for n=" << n << "!" << std::endl;
     preview(as);
@@ -69,29 +88,78 @@ int main(int argc, char **argv)
     gpu::gpu_mem_32u as_gpu;
     as_gpu.resizeN(n);
 
-    gpu::gpu_mem_32u counts_gpu;
-    counts_gpu.resizeN(n + 1);
+    gpu::gpu_mem_32u a_cnts_gpu;
+    a_cnts_gpu.resizeN(n + 1);
 
-    gpu::gpu_mem_32u bs_gpu;
-    bs_gpu.resizeN(n);
+    gpu::gpu_mem_32u a_cnts_gpu_next;
+    a_cnts_gpu_next.resizeN(n + 1);
+
+    gpu::gpu_mem_32u as_gpu_next;
+    as_gpu_next.resizeN(n);
 
     {
         unsigned int workGroupSize = 256;
         unsigned int global_work_size = (n + workGroupSize - 1) / workGroupSize * workGroupSize;
         
-        const auto local_size_def = "-DLOCAL_SIZE=" + std::to_string(workGroupSize);
+        std::string defines_string;
+        for (const auto &define : std::initializer_list<std::string> {
+            "LOCAL_SIZE=" + std::to_string(workGroupSize),
+#ifdef DEBUG_OUTPUT
+            "DEBUG_OUTPUT",
+#endif
+        }) {
+            defines_string += " -D" + define;
+        }
 
-        ocl::Kernel radix_setup(radix_kernel, radix_kernel_length, "radix_setup", local_size_def);
+        ocl::Kernel radix_setup(radix_kernel, radix_kernel_length, "radix_setup", defines_string);
         radix_setup.compile();
 
-        ocl::Kernel radix_gather(radix_kernel, radix_kernel_length, "radix_gather", local_size_def);
+        ocl::Kernel radix_gather(radix_kernel, radix_kernel_length, "radix_gather", defines_string);
         radix_gather.compile();
 
-        ocl::Kernel radix_propagate(radix_kernel, radix_kernel_length, "radix_propagate", local_size_def);
+        ocl::Kernel radix_propagate(radix_kernel, radix_kernel_length, "radix_propagate", defines_string);
         radix_propagate.compile();
 
-        ocl::Kernel radix_move(radix_kernel, radix_kernel_length, "radix_move", local_size_def);
+        ocl::Kernel radix_move(radix_kernel, radix_kernel_length, "radix_move", defines_string);
         radix_move.compile();
+
+        const auto setup_buckets = [&](const unsigned int bit) {
+#ifdef DEBUG_OUTPUT
+            std::cout << "start" << std::endl;
+#endif
+            radix_setup.exec(gpu::WorkSize(workGroupSize, global_work_size), as_gpu, n, a_cnts_gpu, bit);
+        };
+
+        const std::function<void(unsigned int, unsigned int)> prefix_sum = [&](const unsigned int work_size, const unsigned int step) {
+#ifdef DEBUG_OUTPUT
+            std::cout << "\tstep " << step << std::endl;
+#endif
+            radix_gather.exec(gpu::WorkSize(workGroupSize, work_size), a_cnts_gpu, n, step);
+
+            const auto next_step = step * workGroupSize;
+            const auto next_work_size = (work_size + next_step - 1) / next_step;
+            if (next_work_size > 1) {
+                prefix_sum(next_work_size, next_step);
+            }
+
+            radix_propagate.exec(gpu::WorkSize(workGroupSize, work_size), a_cnts_gpu, n, step, a_cnts_gpu_next);
+            a_cnts_gpu.swap(a_cnts_gpu_next);
+#ifdef DEBUG_OUTPUT
+            preview(a_cnts_gpu);
+            preview(a_cnts_gpu_next);
+            std::cout << "\tstep " << step << " end" << std::endl;
+#endif
+        };
+
+        const auto reorder = [&]() {
+#ifdef DEBUG_OUTPUT
+            std::cout << "reorder" << std::endl;
+#endif
+            radix_move.exec(gpu::WorkSize(workGroupSize, global_work_size), as_gpu, n, a_cnts_gpu, as_gpu_next);
+#ifdef DEBUG_OUTPUT
+            std::cout << "end" << std::endl;
+#endif
+        };
 
         timer t;
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
@@ -100,33 +168,32 @@ int main(int argc, char **argv)
             t.restart(); // Запускаем секундомер после прогрузки данных чтобы замерять время работы кернела, а не трансфер данных
 
             for (size_t bit = 0; bit < sizeof(unsigned int) * 8; ++bit) {
-                radix_setup.exec(
-                    gpu::WorkSize(workGroupSize, global_work_size),
-                    bit % 2 ? bs_gpu : as_gpu, n, counts_gpu, (unsigned int) bit
-                );
+                setup_buckets(bit);
+                prefix_sum(global_work_size, 1);
+                reorder();
 
-                for (size_t step = 1; step <= n + 1; step *= workGroupSize) {
-                    radix_gather.exec(
-                        gpu::WorkSize(workGroupSize, global_work_size),
-                        counts_gpu, n, (unsigned int) step
-                    );
+#ifdef DEBUG_OUTPUT
+                std::vector<unsigned int> as_current(n);
+                as_gpu.readN(as_current.data(), n);
+                preview(as_current);
+
+                std::vector<unsigned int> as_current_cnts(n + 1);
+                a_cnts_gpu.readN(as_current_cnts.data(), n + 1);
+                preview(as_current_cnts);
+
+                for (size_t i = 0; i < n; ++i) {
+                    if (as_current_cnts[i + 1] != as_current_cnts[i] + ((as_current[i] >> bit) & 1)) {
+                        std::cout << "[" << i << "]: " 
+                                  << as_current_cnts[i + 1] << " != " << as_current_cnts[i] << "+" << ((as_current[i] >> bit) & 1) 
+                                  << " for " << as_current[i] 
+                                  << std::endl;
+                        break;
+                    }
                 }
+#endif
 
-                radix_propagate.exec(
-                    gpu::WorkSize(workGroupSize, global_work_size),
-                    counts_gpu, n
-                );
-                
-                counts_gpu.readN(as.data(), n);
-                preview(as);
+                as_gpu.swap(as_gpu_next);
 
-                radix_move.exec(
-                    gpu::WorkSize(workGroupSize, global_work_size),
-                    bit % 2 ? bs_gpu : as_gpu, n, counts_gpu, bit % 2 ? as_gpu : bs_gpu
-                );
-
-                (bit % 2 ? as_gpu : bs_gpu).readN(as.data(), n);
-                preview(as);
             }
             t.nextLap();
         }
