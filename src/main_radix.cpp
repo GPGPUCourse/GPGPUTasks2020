@@ -42,7 +42,6 @@ void prefixRec(ocl::Kernel &calculatePrefix, ocl::Kernel &addBuffer, gpu::gpu_me
 
 int main(int argc, char **argv) {
 
-    /*
     gpu::Device device = gpu::chooseGPUDevice(argc, argv);
 
     gpu::Context context;
@@ -125,7 +124,6 @@ int main(int argc, char **argv) {
     for (int i = 0; i < n; ++i) {
         EXPECT_THE_SAME(as[i], cpu_sorted[i], "GPU results should be equal to CPU results!");
     }
-     */
 
     return 0;
 }
