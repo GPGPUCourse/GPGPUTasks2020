@@ -78,7 +78,8 @@ __kernel void calculatePrefix(__global unsigned int *as, __global unsigned int *
                 localWorkGroupBuffer[WORK_GROUP_SIZE - 1] + summatorDoubleBufferTree[2 * WORK_GROUP_SIZE - 1];
     }
 
-    as[global_id] = localWorkGroupBuffer[local_id] + summatorDoubleBufferTree[local_id + WORK_GROUP_SIZE];
+    if (inBounds)
+        as[global_id] = localWorkGroupBuffer[local_id] + summatorDoubleBufferTree[local_id + WORK_GROUP_SIZE];
 }
 
 __kernel void radixByBits(__global unsigned int *as, __global unsigned int *pos0,
