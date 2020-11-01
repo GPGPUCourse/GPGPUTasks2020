@@ -124,7 +124,8 @@ int main(int argc, char **argv) {
 
     for (int i = 0; i < n; ++i) {
         EXPECT_THE_SAME(as[i], cpu_sorted[i], "GPU results should be equal to CPU results!");
-    }*/
+    }
+     */
 
     return 0;
 }
