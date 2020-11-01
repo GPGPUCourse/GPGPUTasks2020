@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
 
     int benchmarkingIters = 10;
 
-    unsigned int n = 32 /** 1024 */* 1024 + 10;
+    unsigned int n = 32 /** 1024 */* 1024;
 
     std::vector<unsigned int> as(n, 0);
     FastRandom r(n);
