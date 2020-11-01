@@ -30,9 +30,9 @@ int main(int argc, char **argv) {
     context.activate();
 
     int benchmarkingIters = 10;
-    
-    unsigned int n = 32 * 1024 * 1024 + 10; //check for non-Power of 2
-    
+
+    unsigned int n = 32 * 1024 * 1024 + 10; //ok with non-Power of 2
+
     std::vector<float> as(n, 0);
     FastRandom r(n);
     for (unsigned int i = 0; i < n; ++i) {
@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
     while (maxPow < n) {
         maxPow *= 2;
     }
-    
+
     as_gpu.resizeN(maxPow);
     std::vector<float> infinities(maxPow, MAXFLOAT);
 

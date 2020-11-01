@@ -55,7 +55,6 @@ __kernel void bitonic(__global float *as, unsigned int sliceSize, unsigned int s
         unsigned int global_id = get_global_id(0);
 
         int flag = global_id % (2 * step) < step;
-
         unsigned int pos = global_id % (2 * sliceSize);
         int inBounds = global_id + sliceSize < n;
 

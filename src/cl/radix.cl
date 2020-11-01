@@ -81,23 +81,23 @@ __kernel void calculatePrefix(__global unsigned int *as, __global unsigned int *
 }
 
 __kernel void radixByBits(__global unsigned int *as, __global unsigned int *pos0,
-                          __global unsigned int *pos1, unsigned int i, unsigned int n) {
+                          __global unsigned int *pos1, unsigned int curr, unsigned int n) {
 
     unsigned int global_id = get_global_id(0);
 
     if (global_id < n) {
 
         unsigned int current = as[global_id];
-        int BitIsEqual1 = (current >> i) & 1;
+        int BitIsEqual1 = (current >> curr) & 1;
 
         pos1[global_id] = BitIsEqual1 ? 1 : 0;
         pos0[global_id] = BitIsEqual1 ? 0 : 1;
     }
 }
 
-__kernel void radix(__global unsigned int *as, __global unsigned int *dir,
+__kernel void radix(__global unsigned int *as, __global unsigned int *dest,
                     __global unsigned int *pos0, __global unsigned int *pos1,
-                    unsigned int i, unsigned int n) {
+                    unsigned int curr, unsigned int n) {
 
     unsigned int global_id = get_global_id(0);
 
@@ -105,14 +105,14 @@ __kernel void radix(__global unsigned int *as, __global unsigned int *dir,
 
         unsigned int current = as[global_id];
 
-        int bitIsEqual1 = (current >> i) & 1;
+        int bitIsEqual1 = (current >> curr) & 1;
 
         if (bitIsEqual1) {
 
-            dir[pos0[n - 1] + pos1[global_id] - 1] = current;
+            dest[pos0[n - 1] + pos1[global_id] - 1] = current;
         } else {
 
-            dir[pos0[global_id] - 1] = current;
+            dest[pos0[global_id] - 1] = current;
         }
     }
 }
