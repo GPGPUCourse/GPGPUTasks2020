@@ -24,9 +24,9 @@ void raiseFail(size_t i, const T &a, const T &b, std::string message, std::strin
 
 #define EXPECT_THE_SAME(i, a, b, message) raiseFail(i, a, b, message, __FILE__, __LINE__)
 
-#define DEBUG_OUTPUT
+#define LOG_LEVEL 2
 
-#ifdef DEBUG_OUTPUT
+#if LOG_LEVEL >= 3
 #   define PREVIEW 16
 #else
 #   define PREVIEW 0
@@ -62,8 +62,8 @@ int main(int argc, char **argv)
     context.init(device.device_id_opencl);
     context.activate();
 
-    int benchmarkingIters = 1;//10;
-    unsigned int n = 257;//32 * 1024 * 1024;
+    int benchmarkingIters = 10;
+    unsigned int n = 1025; //32 * 1024 * 1024;
     std::vector<unsigned int> as(n, 0);
     FastRandom r(n);
     for (unsigned int i = 0; i < n; ++i) {
@@ -104,8 +104,8 @@ int main(int argc, char **argv)
         std::string defines_string;
         for (const auto &define : std::initializer_list<std::string> {
             "LOCAL_SIZE=" + std::to_string(workGroupSize),
-#ifdef DEBUG_OUTPUT
-            "DEBUG_OUTPUT",
+#ifdef LOG_LEVEL
+            "LOG_LEVEL=" + std::to_string(LOG_LEVEL),
 #endif
         }) {
             defines_string += " -D" + define;
@@ -124,14 +124,14 @@ int main(int argc, char **argv)
         radix_move.compile();
 
         const auto setup_buckets = [&](const unsigned int bit) {
-#ifdef DEBUG_OUTPUT
+#if LOG_LEVEL > 1
             std::cout << "start" << std::endl;
 #endif
             radix_setup.exec(gpu::WorkSize(workGroupSize, global_work_size), as_gpu, n, a_cnts_gpu, bit);
         };
 
         const std::function<void(unsigned int, unsigned int)> prefix_sum = [&](const unsigned int work_size, const unsigned int step) {
-#ifdef DEBUG_OUTPUT
+#if LOG_LEVEL > 1
             std::cout << "\tstep " << step << std::endl;
 #endif
             radix_gather.exec(gpu::WorkSize(workGroupSize, work_size), a_cnts_gpu, n, step);
@@ -142,9 +142,9 @@ int main(int argc, char **argv)
                 prefix_sum(next_work_size, next_step);
             }
 
-            radix_propagate.exec(gpu::WorkSize(workGroupSize, work_size), a_cnts_gpu, n, step, a_cnts_gpu_next);
+            radix_propagate.exec(gpu::WorkSize(workGroupSize, global_work_size), a_cnts_gpu, n, next_step, a_cnts_gpu_next);
             a_cnts_gpu.swap(a_cnts_gpu_next);
-#ifdef DEBUG_OUTPUT
+#if LOG_LEVEL > 1
             preview(a_cnts_gpu);
             preview(a_cnts_gpu_next);
             std::cout << "\tstep " << step << " end" << std::endl;
@@ -152,11 +152,11 @@ int main(int argc, char **argv)
         };
 
         const auto reorder = [&]() {
-#ifdef DEBUG_OUTPUT
+#if LOG_LEVEL > 1
             std::cout << "reorder" << std::endl;
 #endif
             radix_move.exec(gpu::WorkSize(workGroupSize, global_work_size), as_gpu, n, a_cnts_gpu, as_gpu_next);
-#ifdef DEBUG_OUTPUT
+#if LOG_LEVEL > 1
             std::cout << "end" << std::endl;
 #endif
         };
@@ -172,23 +172,21 @@ int main(int argc, char **argv)
                 prefix_sum(global_work_size, 1);
                 reorder();
 
-#ifdef DEBUG_OUTPUT
+#if LOG_LEVEL > 0
                 std::vector<unsigned int> as_current(n);
                 as_gpu.readN(as_current.data(), n);
+#if LOG_LEVEL > 2
                 preview(as_current);
+#endif
 
                 std::vector<unsigned int> as_current_cnts(n + 1);
                 a_cnts_gpu.readN(as_current_cnts.data(), n + 1);
+#if LOG_LEVEL > 2
                 preview(as_current_cnts);
+#endif
 
                 for (size_t i = 0; i < n; ++i) {
-                    if (as_current_cnts[i + 1] != as_current_cnts[i] + ((as_current[i] >> bit) & 1)) {
-                        std::cout << "[" << i << "]: " 
-                                  << as_current_cnts[i + 1] << " != " << as_current_cnts[i] << "+" << ((as_current[i] >> bit) & 1) 
-                                  << " for " << as_current[i] 
-                                  << std::endl;
-                        break;
-                    }
+                    EXPECT_THE_SAME(i, as_current_cnts[i + 1], as_current_cnts[i] + ((as_current[i] >> bit) & 1), "partial sums should be correct");
                 }
 #endif
 

@@ -40,7 +40,7 @@ __kernel void radix_gather(
         }
         barrier(CLK_LOCAL_MEM_FENCE);
 
-#ifdef DEBUG_OUTPUT
+#if LOG_LEVEL > 2
         if (step <= iGroup && iGlobal <= n)
             printf("\tgathering %d from %d to %d [%d total]", valueToAdd, iGlobal - step * globalStep, iGlobal, sumsLocal[iGroup] + valueToAdd);
 #endif
@@ -48,6 +48,11 @@ __kernel void radix_gather(
         sumsLocal[iGroup] += valueToAdd;
         barrier(CLK_LOCAL_MEM_FENCE);
     }
+
+#if LOG_LEVEL > 1
+    if (iGlobal <= n && iGroup + 1 == min((size_t) LOCAL_SIZE, n - get_global_offset(0)))
+        printf("\tgathered %d at %d[%d]", sumsLocal[iGroup], iGlobal, iGroup);
+#endif
 
     if (iGlobal <= n) {
         sums[iGlobal] = sumsLocal[iGroup];
@@ -60,20 +65,25 @@ __kernel void radix_propagate(
     const unsigned int globalStep,
     __global unsigned int *sums_next
 ) {
-    const size_t iGlobal = (get_global_id(0) + 1) * globalStep;
-    const size_t prevGroupEnd = get_global_offset(0) * globalStep;
+    const size_t iGlobal = get_global_id(0);
+    const size_t prevGroupEnd = iGlobal - iGlobal % globalStep;
     
     const unsigned int prefixSum = sums[prevGroupEnd];
+#if LOG_LEVEL > 1
+    if (iGlobal == prevGroupEnd) {
+        printf("\tpropagating %d from %d[%d]", prefixSum, prevGroupEnd, get_local_id(0));
+    }
+#endif
 
-    if (get_global_id(0) == 0) {
+    if (iGlobal == 0) {
         sums_next[0] = 0;
     }
 
-    if (iGlobal <= n) {
-        sums_next[iGlobal] = sums[iGlobal] + prefixSum;
+    if (iGlobal < n) {
+        sums_next[iGlobal + 1] = sums[iGlobal + 1] + prefixSum;
         
-#ifdef DEBUG_OUTPUT
-        printf("\tpropagating %d from %d to %d [%d total]", prefixSum, prevGroupEnd, iGlobal, sums[iGlobal] + prefixSum);
+#if LOG_LEVEL > 2
+        printf("\tpropagating %d from %d to %d [%d total]", prefixSum, prevGroupEnd, iGlobal, sums[iGlobal + 1] + prefixSum);
 #endif
     }
 }
@@ -88,7 +98,7 @@ __kernel void radix_move(
 
     const size_t zeros = n - a_cnts[n];
 
-#ifdef DEBUG_OUTPUT
+#if LOG_LEVEL > 1
     if (iGlobal == 0) {
         printf("%d zeros", zeros);
     }
@@ -101,7 +111,7 @@ __kernel void radix_move(
             ? iGlobal - ones_on_prefix
             : zeros + ones_on_prefix;
 
-#ifdef DEBUG_OUTPUT
+#if LOG_LEVEL > 2
         printf("%d goes from %d to %d", as[iGlobal], iGlobal, index);
 #endif
 
