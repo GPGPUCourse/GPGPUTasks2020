@@ -1,4 +1,4 @@
-#ifdef __CLION_IDE__
+/*#ifdef __CLION_IDE__
 
 #include <libgpu/opencl/cl/clion_defines.cl>
 
@@ -116,3 +116,4 @@ __kernel void radix(__global unsigned int *as, __global unsigned int *dest,
         }
     }
 }
+*/
