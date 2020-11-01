@@ -23,7 +23,7 @@ convertIntoHeader(src/cl/aplusb.cl src/cl/aplusb_cl.h aplusb_kernel)
 add_executable(aplusb src/main_aplusb.cpp src/cl/aplusb_cl.h)
 target_link_libraries(aplusb libclew libgpu libutils)
 
-convertIntoHeader(src/cl/bitonic.cl src/cl/bitonic_cl.h  bitonic_kernel)
+convertIntoHeader(src/cl/bitonic.cl src/cl/bitonic_cl.h bitonic_kernel)
 add_executable(bitonic src/main_bitonic.cpp src/cl/bitonic_cl.h src/cl/bitonic.cl)
 target_link_libraries(bitonic libclew libgpu libutils)
 
