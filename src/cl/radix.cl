@@ -1,4 +1,4 @@
-/*#ifdef __CLION_IDE__
+#ifdef __CLION_IDE__
 
 #include <libgpu/opencl/cl/clion_defines.cl>
 
@@ -30,6 +30,7 @@ __kernel void calculatePrefix(__global unsigned int *as, __global unsigned int *
 
     int inBounds = global_id < aSize;
     localWorkGroupBuffer[local_id] = inBounds ? as[global_id] : 0;
+
     summatorDoubleBufferTree[local_id + WORK_GROUP_SIZE] = inBounds ? localWorkGroupBuffer[local_id] : 0;
 
     summatorDoubleBufferTree[local_id] = 0;
@@ -116,4 +117,3 @@ __kernel void radix(__global unsigned int *as, __global unsigned int *dest,
         }
     }
 }
-*/
