@@ -25,7 +25,7 @@ target_link_libraries(aplusb libclew libgpu libutils)
 
 convertIntoHeader(src/cl/bitonic.cl src/cl/bitonic_cl.h bitonic_kernel)
 add_executable(bitonic src/main_bitonic.cpp src/cl/bitonic_cl.h)
-target_link_libraries(bitonic libclew libgpu libutils)
+target_link_libraries(bitonic libclew libgpu libimages libutils)
 
 convertIntoHeader(src/cl/radix.cl src/cl/radix_cl.h radix_kernel)
 add_executable(radix src/main_radix.cpp src/cl/radix_cl.h)
