@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
 
     int benchmarkingIters = 10;
 
-    unsigned int n = 32 * 1024 * 1024 + 10; //ok with non-Power of 2
+    unsigned int n = 32 /** 1024 */ * 1024 + 10; //ok with non-Power of 2
 
     std::vector<float> as(n, 0);
     FastRandom r(n);
