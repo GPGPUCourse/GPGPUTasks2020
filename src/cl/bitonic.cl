@@ -6,7 +6,7 @@
 
 #line 6
 
-#define WORK_GROUP_SIZE 256
+#define WORK_GROUP_SIZE 128
 
 __kernel void bitonic(__global float *as, unsigned int sliceSize, unsigned int step, unsigned int n, unsigned int useLocal) {
 

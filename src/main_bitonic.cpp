@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
             as_gpu.writeN(infinities.data(), maxPow);
             as_gpu.writeN(as.data(), n);
 
-            unsigned int workGroupSize = 256;
+            unsigned int workGroupSize = 128;
             unsigned int global_work_size = (maxPow + workGroupSize - 1) / workGroupSize * workGroupSize;
 
             t.restart();

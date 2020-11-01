@@ -6,7 +6,7 @@
 
 #line 6
 
-#define WORK_GROUP_SIZE 256
+#define WORK_GROUP_SIZE 128
 
 __kernel void addBuffer(__global unsigned int *as, __global unsigned int *buff,
                         unsigned int aSize) {

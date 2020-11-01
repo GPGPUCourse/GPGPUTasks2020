@@ -25,7 +25,7 @@ void raiseFail(const T &a, const T &b, std::string message, std::string filename
 
 void prefixRec(ocl::Kernel &calculatePrefix, ocl::Kernel &addBuffer, gpu::gpu_mem_32u &tempArr, unsigned int size) {
 
-    unsigned int workGroupSize = 256;
+    unsigned int workGroupSize = 128;
     unsigned int global_work_size = (size + workGroupSize - 1) / workGroupSize * workGroupSize;
 
     gpu::gpu_mem_32u temp;
@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
 
             t.restart();
 
-            unsigned int workGroupSize = 256;
+            unsigned int workGroupSize = 128;
 
             unsigned int size = n;
             unsigned int global_work_size = (size + workGroupSize - 1) / workGroupSize * workGroupSize;
