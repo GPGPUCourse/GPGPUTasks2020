@@ -94,6 +94,9 @@ int main(int argc, char **argv)
                 }
                 local_bitonic.exec(gpu::WorkSize(workGroupSize,global_work_size),as_gpu, n, batch_size, size);
             }
+
+            t.nextLap();
+
             
         }
         std::cout << "GPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
