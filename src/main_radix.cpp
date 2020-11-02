@@ -41,10 +41,8 @@ unsigned int runRecursion(ocl::Kernel& prefix, unsigned int workGroupSize,
     if (n == 1){
         unsigned int res;
         prefixSums.readN(&res, 1);
-        // std::cout << res << std::endl;
         return res;
     }
-    // std::cout << "begin: " << n << std::endl;
     gpu::gpu_mem_32u prefixSumsBlocks;
     unsigned int global_work_size = (n + workGroupSize - 1) / workGroupSize * workGroupSize;
     unsigned int newN = (n - 1) / workGroupSize + 1;
@@ -55,15 +53,9 @@ unsigned int runRecursion(ocl::Kernel& prefix, unsigned int workGroupSize,
 
     auto res = runRecursion(prefix, workGroupSize, prefixSumsBlocks, shift, newN);
 
-    // std::cout << "here " << newN << std::endl;
-    // print(prefixSums, n);
-    // print(prefixSumsBlocks, newN);
-
     prefix.exec(gpu::WorkSize(workGroupSize, global_work_size),
         prefixSums, prefixSumsBlocks, 2, shift, n);    
 
-    // print(prefixSums, n);
-    // std::cout << "end: " << n << std::endl;
     return res;
 }
 
@@ -133,9 +125,9 @@ int main(int argc, char **argv)
 
             for (int shift = 0; shift < 32; shift++) {
                 auto zeroCount = calcPrefixSums(prefix, workGroupSize, s[shift & 1], prefixSums, shift, n);
-                // radix.exec(gpu::WorkSize(workGroupSize, global_work_size),
-                //            s[shift & 1], s[(shift & 1) ^ 1], prefixSums,
-                //            zeroCount, shift, n);
+                radix.exec(gpu::WorkSize(workGroupSize, global_work_size),
+                           s[shift & 1], s[(shift & 1) ^ 1], prefixSums,
+                           zeroCount, shift, n);
             }
             t.nextLap();
         }

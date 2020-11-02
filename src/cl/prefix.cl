@@ -13,6 +13,7 @@ __kernel void prefix(__global unsigned int* from,
                     unsigned int shift,
                     unsigned int n)
 {
+    assert()
     unsigned int id = get_global_id(0);
     if (stage == 0) {
         if (id < n)
@@ -32,7 +33,7 @@ __kernel void prefix(__global unsigned int* from,
             current >>= 1;
             barrier(CLK_LOCAL_MEM_FENCE);
         }
-        if (localID == 0){
+        if (localID == 0 && id < n){
             to[id >> LOG_GROUP_SIZE] = cache[localID];
         }
     } else {
