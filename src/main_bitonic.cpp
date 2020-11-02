@@ -57,7 +57,6 @@ int main(int argc, char **argv)
     gpu::gpu_mem_32f as_gpu;
     as_gpu.resizeN(n);
 
-    using std::cout, std::endl;
     {
         ocl::Kernel bitonic(bitonic_kernel, bitonic_kernel_length, "bitonic");
         bitonic.compile();
