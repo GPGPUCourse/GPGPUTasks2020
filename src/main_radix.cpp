@@ -65,7 +65,7 @@ int main(int argc, char **argv)
     context.init(device.device_id_opencl);
     context.activate();
 
-    const size_t benchmarkingIters = 1;
+    const size_t benchmarkingIters = 10;
     const size_t n = 32 * 1024 * 1024;
     std::vector<unsigned int> as(n, 0);
     FastRandom r(n);
