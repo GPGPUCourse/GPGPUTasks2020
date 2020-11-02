@@ -34,7 +34,7 @@ __kernel void prefix(__global unsigned int* from,
         // }
         // if (localID == 0 && id < n){
         //     to[id >> LOG_GROUP_SIZE] = cache[localID];
-        }
+        // }
     } else {
         __local unsigned cache[GROUP_SIZE];
         unsigned int localID = get_local_id(0);
