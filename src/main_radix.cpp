@@ -44,6 +44,7 @@ unsigned int runRecursion(ocl::Kernel& prefix, unsigned int workGroupSize,
         // std::cout << res << std::endl;
         return res;
     }
+    // std::cout << "begin: " << n << std::endl;
     gpu::gpu_mem_32u prefixSumsBlocks;
     unsigned int global_work_size = (n + workGroupSize - 1) / workGroupSize * workGroupSize;
     unsigned int newN = (n - 1) / workGroupSize + 1;
@@ -62,6 +63,7 @@ unsigned int runRecursion(ocl::Kernel& prefix, unsigned int workGroupSize,
         prefixSums, prefixSumsBlocks, 2, shift, n);    
 
     // print(prefixSums, n);
+    // std::cout << "end: " << n << std::endl;
     return res;
 }
 
@@ -85,7 +87,8 @@ int main(int argc, char **argv)
     context.activate();
 
     int benchmarkingIters = 10;
-    unsigned int n = 32 * 1024 * 1024;
+    // unsigned int n = 32 * 1024 * 1024;
+    unsigned int n = 32 * 1024;
     std::vector<unsigned int> as(n, 0);
     FastRandom r(n);
     for (unsigned int i = 0; i < n; ++i) {
@@ -129,11 +132,10 @@ int main(int argc, char **argv)
             unsigned int global_work_size = (n + workGroupSize - 1) / workGroupSize * workGroupSize;
 
             for (int shift = 0; shift < 32; shift++) {
-
                 auto zeroCount = calcPrefixSums(prefix, workGroupSize, s[shift & 1], prefixSums, shift, n);
-                radix.exec(gpu::WorkSize(workGroupSize, global_work_size),
-                           s[shift & 1], s[(shift & 1) ^ 1], prefixSums,
-                           zeroCount, shift, n);
+                // radix.exec(gpu::WorkSize(workGroupSize, global_work_size),
+                //            s[shift & 1], s[(shift & 1) ^ 1], prefixSums,
+                //            zeroCount, shift, n);
             }
             t.nextLap();
         }

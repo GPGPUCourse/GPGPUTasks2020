@@ -51,7 +51,7 @@ __kernel void prefix(__global unsigned int* from,
             barrier(CLK_LOCAL_MEM_FENCE);
         }
         unsigned int res = cache[localID];
-        if ((id >> LOG_GROUP_SIZE) && id < n)
+        if ((id >> LOG_GROUP_SIZE) > 0 && id < n)
             res += to[(id >> LOG_GROUP_SIZE) - 1];
         if (id < n)
             from[id] = res;
