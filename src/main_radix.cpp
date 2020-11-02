@@ -24,16 +24,19 @@ void raiseFail(size_t i, const T &a, const T &b, std::string message, std::strin
 
 #define EXPECT_THE_SAME(i, a, b, message) raiseFail(i, a, b, message, __FILE__, __LINE__)
 
-#define LOG_LEVEL 2
+// #define LOG_LEVEL 1
 
-#if LOG_LEVEL >= 3
+#if LOG_LEVEL > 1
 #   define PREVIEW 16
 #else
 #   define PREVIEW 0
 #endif
 
 template<typename T>
-void preview(const std::vector<T> &a) {
+void preview(const std::vector<T> &a, std::string prefix = "") {
+    if (!prefix.empty()) {
+        std::cout << prefix << " ";
+    }
     const size_t size = std::min(a.size(), (size_t) PREVIEW);
     for (size_t i = 0; i < size; ++i) {
         std::cout << a[i] << " ";
@@ -43,14 +46,14 @@ void preview(const std::vector<T> &a) {
 }
 
 template<typename T>
-void preview(const gpu::shared_device_buffer_typed<T> &a) {
+void preview(const gpu::shared_device_buffer_typed<T> &a, std::string prefix = "") {
     const size_t size = std::min(a.number(), (size_t) PREVIEW);
     
     if (size > 0) {
         std::vector<T> tmp(size);
         a.readN(tmp.data(), size);
 
-        preview(tmp);
+        preview(tmp, prefix);
     }
 }
 
@@ -63,14 +66,14 @@ int main(int argc, char **argv)
     context.activate();
 
     int benchmarkingIters = 10;
-    unsigned int n = 1025; //32 * 1024 * 1024;
+    unsigned int n = 32 * 1024 * 1024;
     std::vector<unsigned int> as(n, 0);
     FastRandom r(n);
     for (unsigned int i = 0; i < n; ++i) {
         as[i] = (unsigned int) r.next(0, std::numeric_limits<int>::max());
     }
     std::cout << "Data generated for n=" << n << "!" << std::endl;
-    preview(as);
+    preview(as, "Array");
 
     std::vector<unsigned int> cpu_sorted;
     {
@@ -83,7 +86,7 @@ int main(int argc, char **argv)
         std::cout << "CPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
         std::cout << "CPU: " << (n/1000/1000) / t.lapAvg() << " millions/s" << std::endl;
     }
-    preview(cpu_sorted);
+    preview(cpu_sorted, "Sorted array");
 
     gpu::gpu_mem_32u as_gpu;
     as_gpu.resizeN(n);
@@ -98,8 +101,8 @@ int main(int argc, char **argv)
     as_gpu_next.resizeN(n);
 
     {
-        unsigned int workGroupSize = 256;
-        unsigned int global_work_size = (n + workGroupSize - 1) / workGroupSize * workGroupSize;
+        const size_t workGroupSize = 256;
+        const size_t global_work_size = (n + workGroupSize - 1) / workGroupSize * workGroupSize;
         
         std::string defines_string;
         for (const auto &define : std::initializer_list<std::string> {
@@ -124,39 +127,38 @@ int main(int argc, char **argv)
         radix_move.compile();
 
         const auto setup_buckets = [&](const unsigned int bit) {
-#if LOG_LEVEL > 1
+#if LOG_LEVEL > 0
             std::cout << "start" << std::endl;
 #endif
             radix_setup.exec(gpu::WorkSize(workGroupSize, global_work_size), as_gpu, n, a_cnts_gpu, bit);
         };
 
-        const std::function<void(unsigned int, unsigned int)> prefix_sum = [&](const unsigned int work_size, const unsigned int step) {
-#if LOG_LEVEL > 1
+        const std::function<void(unsigned int)> prefix_sum = [&](const unsigned int step) {
+#if LOG_LEVEL > 0
             std::cout << "\tstep " << step << std::endl;
 #endif
-            radix_gather.exec(gpu::WorkSize(workGroupSize, work_size), a_cnts_gpu, n, step);
+            radix_gather.exec(gpu::WorkSize(workGroupSize, (n + step) / step), a_cnts_gpu, n + 1, step);
 
             const auto next_step = step * workGroupSize;
-            const auto next_work_size = (work_size + next_step - 1) / next_step;
-            if (next_work_size > 1) {
-                prefix_sum(next_work_size, next_step);
+            if (next_step < n + 1) {
+                prefix_sum(next_step);
+            } else {
+                a_cnts_gpu.copyToN(a_cnts_gpu_next, n + 1);
             }
 
-            radix_propagate.exec(gpu::WorkSize(workGroupSize, global_work_size), a_cnts_gpu, n, next_step, a_cnts_gpu_next);
+            radix_propagate.exec(gpu::WorkSize(workGroupSize, (n + step) / step), a_cnts_gpu, n + 1, step, a_cnts_gpu_next);
             a_cnts_gpu.swap(a_cnts_gpu_next);
-#if LOG_LEVEL > 1
-            preview(a_cnts_gpu);
-            preview(a_cnts_gpu_next);
+#if LOG_LEVEL > 0
             std::cout << "\tstep " << step << " end" << std::endl;
 #endif
         };
 
         const auto reorder = [&]() {
-#if LOG_LEVEL > 1
+#if LOG_LEVEL > 0
             std::cout << "reorder" << std::endl;
 #endif
             radix_move.exec(gpu::WorkSize(workGroupSize, global_work_size), as_gpu, n, a_cnts_gpu, as_gpu_next);
-#if LOG_LEVEL > 1
+#if LOG_LEVEL > 0
             std::cout << "end" << std::endl;
 #endif
         };
@@ -169,20 +171,20 @@ int main(int argc, char **argv)
 
             for (size_t bit = 0; bit < sizeof(unsigned int) * 8; ++bit) {
                 setup_buckets(bit);
-                prefix_sum(global_work_size, 1);
+                prefix_sum(1);
                 reorder();
 
 #if LOG_LEVEL > 0
                 std::vector<unsigned int> as_current(n);
                 as_gpu.readN(as_current.data(), n);
-#if LOG_LEVEL > 2
-                preview(as_current);
+#if LOG_LEVEL > 1
+                preview(as_current, "Partially sorted");
 #endif
 
                 std::vector<unsigned int> as_current_cnts(n + 1);
                 a_cnts_gpu.readN(as_current_cnts.data(), n + 1);
-#if LOG_LEVEL > 2
-                preview(as_current_cnts);
+#if LOG_LEVEL > 1
+                preview(as_current_cnts, "Prefix sums");
 #endif
 
                 for (size_t i = 0; i < n; ++i) {
@@ -200,7 +202,9 @@ int main(int argc, char **argv)
 
         as_gpu.readN(as.data(), n);
     }
+#if LOG_LEVEL > 1
     preview(as);
+#endif
 
     // Проверяем корректность результатов
     for (int i = 0; i < n; ++i) {
