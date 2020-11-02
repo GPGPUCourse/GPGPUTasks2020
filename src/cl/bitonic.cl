@@ -1,4 +1,4 @@
-#define BLOCK_SIZE 64
+#define BLOCK_SIZE 16
 
 __kernel void bitonic(__global float* as, int run, int step, int subBlockSize)
 {
