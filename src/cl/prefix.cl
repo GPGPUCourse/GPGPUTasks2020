@@ -13,7 +13,6 @@ __kernel void prefix(__global unsigned int* from,
                     unsigned int shift,
                     unsigned int n)
 {
-    assert()
     unsigned int id = get_global_id(0);
     if (stage == 0) {
         if (id < n)
