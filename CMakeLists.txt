@@ -30,3 +30,7 @@ target_link_libraries(bitonic libclew libgpu libutils)
 convertIntoHeader(src/cl/radix.cl src/cl/radix_cl.h radix_kernel)
 add_executable(radix src/main_radix.cpp src/cl/radix_cl.h)
 target_link_libraries(radix libclew libgpu libutils)
+
+convertIntoHeader(src/cl/prefix_sum.cl src/cl/prefix_sum_cl.h prefix_sum)
+add_executable(prefix_sum src/main_prefix_sum.cpp src/cl/prefix_sum_cl.h)
+target_link_libraries(prefix_sum libclew libgpu libutils)
