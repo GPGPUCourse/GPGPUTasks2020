@@ -1,8 +1,8 @@
 __kernel void radix_setup(
     const __global unsigned int *as, 
-    const unsigned int n, 
-    __global unsigned int *a_cnts,
-    const unsigned int bit
+    const size_t n, 
+    __global size_t *a_cnts,
+    const size_t bit
 ) {
     const size_t iGlobal = get_global_id(0);
     const size_t iGroup = get_local_id(0);
@@ -17,14 +17,14 @@ __kernel void radix_setup(
 }
 
 __kernel void radix_gather(
-    __global unsigned int *sums, 
-    const unsigned int n,
-    const unsigned int globalStep
+    __global size_t *sums, 
+    const size_t n,
+    const size_t globalStep
 ) {
     const size_t iGlobal = (get_global_id(0) + 1) * globalStep - 1;
     const size_t iGroup = get_local_id(0);
     
-    __local unsigned int sumsLocal[LOCAL_SIZE];
+    __local size_t sumsLocal[LOCAL_SIZE];
    
     if (iGlobal < n) {
         sumsLocal[iGroup] = sums[iGlobal];
@@ -34,7 +34,7 @@ __kernel void radix_gather(
     barrier(CLK_LOCAL_MEM_FENCE);
 
     for (size_t step = 1; step < LOCAL_SIZE; step <<= 1) {
-        unsigned int valueToAdd = 0;
+        size_t valueToAdd = 0;
         if (step <= iGroup) {
             valueToAdd = sumsLocal[iGroup - step];
         }
@@ -60,20 +60,20 @@ __kernel void radix_gather(
 }
 
 __kernel void radix_propagate(
-    const __global unsigned int *sums, 
-    const unsigned int n,
-    const unsigned int globalStep,
-    __global unsigned int *sums_next
+    const __global size_t *sums, 
+    const size_t n,
+    const size_t globalStep,
+    __global size_t *sums_next
 ) {
     const size_t iGlobal = (get_global_id(0) + 1) * globalStep - 1;
     const size_t iGroup = get_local_id(0);
 
     const size_t macroStep = globalStep * LOCAL_SIZE;
     const size_t macroStepIndex = iGlobal % macroStep;
-    const int prevPrefix = macroStepIndex + 1 != macroStep ? iGlobal - macroStepIndex - 1 : -1;
+    const size_t prevPrefix = macroStepIndex + 1 != macroStep ? iGlobal - macroStepIndex : 0;
     
     if (iGlobal < n) {    
-        const unsigned int prevSum = prevPrefix >= 0 ? sums[prevPrefix] : 0;
+        const size_t prevSum = prevPrefix > 0 ? sums[prevPrefix - 1] : 0;
 
 #if LOG_LEVEL == 2
         if (stepIndex + 1 == globalStep) {
@@ -91,8 +91,8 @@ __kernel void radix_propagate(
 
 __kernel void radix_move(
     const __global unsigned int *as, 
-    const unsigned int n, 
-    const __global unsigned int *a_cnts, 
+    const size_t n, 
+    const __global size_t *a_cnts, 
     __global unsigned int *bs
 ) {
     const size_t iGlobal = get_global_id(0);
@@ -106,7 +106,7 @@ __kernel void radix_move(
 #endif
 
     if (iGlobal < n) {
-        const unsigned int ones_on_prefix = a_cnts[iGlobal];
+        const size_t ones_on_prefix = a_cnts[iGlobal];
         const size_t index = 
             a_cnts[iGlobal + 1] == ones_on_prefix // 'is zero'
             ? iGlobal - ones_on_prefix

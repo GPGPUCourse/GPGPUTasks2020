@@ -65,11 +65,11 @@ int main(int argc, char **argv)
     context.init(device.device_id_opencl);
     context.activate();
 
-    int benchmarkingIters = 10;
-    unsigned int n = 32 * 1024 * 1024;
+    const size_t benchmarkingIters = 1;
+    const size_t n = 32 * 1024 * 1024;
     std::vector<unsigned int> as(n, 0);
     FastRandom r(n);
-    for (unsigned int i = 0; i < n; ++i) {
+    for (size_t i = 0; i < n; ++i) {
         as[i] = (unsigned int) r.next(0, std::numeric_limits<int>::max());
     }
     std::cout << "Data generated for n=" << n << "!" << std::endl;
@@ -78,7 +78,7 @@ int main(int argc, char **argv)
     std::vector<unsigned int> cpu_sorted;
     {
         timer t;
-        for (int iter = 0; iter < benchmarkingIters; ++iter) {
+        for (size_t iter = 0; iter < benchmarkingIters; ++iter) {
             cpu_sorted = as;
             std::sort(cpu_sorted.begin(), cpu_sorted.end());
             t.nextLap();
@@ -91,10 +91,10 @@ int main(int argc, char **argv)
     gpu::gpu_mem_32u as_gpu;
     as_gpu.resizeN(n);
 
-    gpu::gpu_mem_32u a_cnts_gpu;
+    gpu::gpu_mem_64u a_cnts_gpu;
     a_cnts_gpu.resizeN(n + 1);
 
-    gpu::gpu_mem_32u a_cnts_gpu_next;
+    gpu::gpu_mem_64u a_cnts_gpu_next;
     a_cnts_gpu_next.resizeN(n + 1);
 
     gpu::gpu_mem_32u as_gpu_next;
@@ -126,14 +126,14 @@ int main(int argc, char **argv)
         ocl::Kernel radix_move(radix_kernel, radix_kernel_length, "radix_move", defines_string);
         radix_move.compile();
 
-        const auto setup_buckets = [&](const unsigned int bit) {
+        const auto setup_buckets = [&](const size_t bit) {
 #if LOG_LEVEL > 0
             std::cout << "start" << std::endl;
 #endif
             radix_setup.exec(gpu::WorkSize(workGroupSize, global_work_size), as_gpu, n, a_cnts_gpu, bit);
         };
 
-        const std::function<void(unsigned int)> prefix_sum = [&](const unsigned int step) {
+        const std::function<void(size_t)> prefix_sum = [&](const size_t step) {
 #if LOG_LEVEL > 0
             std::cout << "\tstep " << step << std::endl;
 #endif
@@ -164,7 +164,7 @@ int main(int argc, char **argv)
         };
 
         timer t;
-        for (int iter = 0; iter < benchmarkingIters; ++iter) {
+        for (size_t iter = 0; iter < benchmarkingIters; ++iter) {
             as_gpu.writeN(as.data(), n);
 
             t.restart(); // Запускаем секундомер после прогрузки данных чтобы замерять время работы кернела, а не трансфер данных

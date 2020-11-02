@@ -422,6 +422,7 @@ template class shared_device_buffer_typed<int32_t>;
 template class shared_device_buffer_typed<uint8_t>;
 template class shared_device_buffer_typed<uint16_t>;
 template class shared_device_buffer_typed<uint32_t>;
+template class shared_device_buffer_typed<uint64_t>;
 template class shared_device_buffer_typed<float>;
 template class shared_device_buffer_typed<double>;
 
