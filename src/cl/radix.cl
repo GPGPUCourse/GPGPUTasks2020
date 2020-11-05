@@ -2,79 +2,51 @@
 #include <libgpu/opencl/cl/clion_defines.cl>
 #endif
 
-
-
-kernel void sums(global unsigned int *S, unsigned int t, unsigned int level) {
-    int id = get_global_id(0);
-    
-    if ((1 << level) * id < (1 << t)) {
-        int old_id = (1 << (t + 1)) - 2 - (1 << (t - level + 1)) + id;
-        
-        unsigned int sum = S[2 * old_id] + S[2*old_id + 1];
-        
-        int new_id = (1 << (t + 1)) - 2 - (1 << (t - level)) + id;
-        
-        S[new_id] = sum;
-    }
+bool bitAt(unsigned int x, unsigned int bit) {
+    return (x & (1 << bit)) != 0;
 }
 
-void local_prefix_sums(local unsigned int *lA, local unsigned int *lOut, local unsigned int *out_sum) {
-    int sum = 0;
-    for (int i = 0; i < WORK_GROUP_SIZE; i++) {
-        lOut[i] = sum;
-        sum += lA[i];
+kernel void radix(global unsigned int *S, global unsigned int *A1, global unsigned int *A2, unsigned int log2n, unsigned int bit) {
+    int gid = get_global_id(0);
+    
+    unsigned int x = A1[gid];
+    bool isOne = bitAt(x, bit);
+    unsigned int sum = 0;
+    unsigned int o = 0;
+    for (int i = 0; i <= log2n; i++) {
+        unsigned int b = bitAt(gid, log2n - i);
+        
+        sum += S[(1 << i) - 1 + o] * b;
+        o = (o + b) * 2;
     }
-    *out_sum = sum;
+    
+    unsigned int allOnes = S[0];
+    unsigned int pos = ((1 << log2n) - allOnes + sum) * isOne + (gid - sum) * (!isOne);
+    
+    A2[pos] = x;
 }
 
-kernel void local_radix(global unsigned int* as, global unsigned int *out, unsigned int n)
-{
-    int id = get_global_id(0);
-    int lid = get_local_id(0);
+void tree_bit_sum(global unsigned int *S, global const unsigned int *A1, int log2n, int level, unsigned int bit) {
+    int gid = get_global_id(0);
+    int tid = (1 << level) - 1 + gid;
+    int c1 = 2*tid + 1;
+    int c2 = 2*tid + 2;
     
-    local unsigned int lA[2][WORK_GROUP_SIZE];
-    local unsigned int zeros[WORK_GROUP_SIZE];
-    local unsigned int ones[WORK_GROUP_SIZE];
-    
-    local unsigned int prefOnes[WORK_GROUP_SIZE];
-    local unsigned int prefZeros[WORK_GROUP_SIZE];
-    
-    local unsigned int t1;
-    local unsigned int t2;
-    
-    lA[0][lid] = as[id];
-    
-    barrier(CLK_LOCAL_MEM_FENCE);
-    
-    const int bit_count = 32;
-    for (int i = 0; i < bit_count; i++) {
-        int cur = i & 1;
-        int next = (i + 1) & 1;
-        
-        if ((lA[cur][lid] & (1 << i)) == 0) {
-            zeros[lid] = 1;
-            ones[lid] = 0;
+    if (level == log2n)
+        S[tid] = bitAt(A1[gid], bit);
+    else
+        S[tid] = S[c1] + S[c2];
+}
+
+kernel void bit_sums(global unsigned int *S, global const unsigned int *A1, unsigned int log2n, unsigned int level, unsigned int bit) {
+    if ((1 << level) == WORK_GROUP_SIZE) {
+        for (int l = level; l >= 0; l--) {
+            if (get_global_id(0) < (1 << l))
+                tree_bit_sum(S, A1, log2n, l, bit);
+            barrier(CLK_GLOBAL_MEM_FENCE);
         }
-        else {
-            ones[lid] = 1;
-            zeros[lid] = 0;
-        }
-        barrier(CLK_LOCAL_MEM_FENCE);
-    
-        if (lid == WORK_GROUP_SIZE - 1) {
-            local_prefix_sums(ones, prefOnes, &t1);
-            local_prefix_sums(zeros, prefZeros, &t2);
-        }
-        barrier(CLK_LOCAL_MEM_FENCE);
-        
-        if (ones[lid]) {
-            lA[next][t2 + prefOnes[lid]] = lA[cur][lid];
-        }
-        else {
-            lA[next][prefZeros[lid]] = lA[cur][lid];
-        }
-        barrier(CLK_LOCAL_MEM_FENCE);
     }
-    
-    out[id] = lA[bit_count & 1][lid];
+    else {
+        tree_bit_sum(S, A1, log2n, level, bit);
+    }
 }
