@@ -1,3 +1,0 @@
-C:\Users\Vergi\AppData\Local\JetBrains\Toolbox\apps\CLion\ch-0\202.7660.37\bin\cmake\win\bin\cmake.exe -E rm -f CMakeFiles\matrix_multiplication.dir/objects.a
-C:\PROGRA~1\MINGW-~1\X86_64~2.0-P\mingw64\bin\ar.exe cr CMakeFiles\matrix_multiplication.dir/objects.a @CMakeFiles\matrix_multiplication.dir\objects1.rsp
-C:\PROGRA~1\MINGW-~1\X86_64~2.0-P\mingw64\bin\G__~1.EXE  -fopenmp -g    -Wl,--whole-archive CMakeFiles\matrix_multiplication.dir/objects.a -Wl,--no-whole-archive  -o matrix_multiplication.exe -Wl,--out-implib,libmatrix_multiplication.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\matrix_multiplication.dir\linklibs.rsp

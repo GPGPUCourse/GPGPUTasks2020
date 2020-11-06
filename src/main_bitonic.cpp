@@ -10,6 +10,7 @@
 #include <vector>
 #include <iostream>
 #include <stdexcept>
+#include <iomanip>
 
 
 template<typename T>
@@ -33,8 +34,8 @@ int main(int argc, char **argv)
     context.activate();
 
     int benchmarkingIters = 1;
-    //unsigned int n = 32 * 1024 * 1024;
-    unsigned int n = 256;
+    unsigned int n = 32 * 1024 * 1024;
+    //unsigned int n = 1024 * 32;
     std::vector<float> as(n, 0);
     FastRandom r(n);
     for (unsigned int i = 0; i < n; ++i) {
@@ -57,9 +58,9 @@ int main(int argc, char **argv)
     gpu::gpu_mem_32f as_gpu;
     as_gpu.resizeN(n);
 
-    for (int i = 0; i < 10; ++i) {
+    /*for (int i = 0; i < 10; ++i) {
         std::cout << as[i] << '\n';
-    }
+    }*/
 
     {
         ocl::Kernel bitonic(bitonic_kernel, bitonic_kernel_length, "bitonic");
@@ -77,13 +78,11 @@ int main(int argc, char **argv)
 
             bitonic.exec(wsize, as_gpu, 0, 0);
 
-            for (unsigned int i = workGroupSize * 2; i <= n; i *= 2) {
-                bitonic.exec(wsize, as_gpu, i, 1);
-                for (unsigned int j = i / 2; j >= workGroupSize; j /= 2) {
-                    bitonic.exec(wsize, as_gpu, j, 0);
+            for (unsigned int chunk = workGroupSize * 2; chunk <= n; chunk *= 2) {
+                for (unsigned int s = chunk; s >= workGroupSize; s /= 2) {
+                    bitonic.exec(wsize, as_gpu, s, chunk);
                 }
             }
-
 
             t.nextLap();
         }
@@ -96,7 +95,7 @@ int main(int argc, char **argv)
     // Проверяем корректность результатов
 
     for (int i = 0; i < 50; ++i) {
-        std::cout << cpu_sorted[i] << ' ' << as[i] << '\n';
+        std::cout << std::setprecision(10) << cpu_sorted[i] << ' ' << as[i] << '\n';
     }
 
     for (int i = 0; i < n; ++i) {

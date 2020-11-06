@@ -1,2 +1,0 @@
-C:\PROGRA~1\MINGW-~1\X86_64~2.0-P\mingw64\bin\ar.exe qc liblibimages.a  CMakeFiles/libimages.dir/libimages/images.cpp.obj
-C:\PROGRA~1\MINGW-~1\X86_64~2.0-P\mingw64\bin\ranlib.exe liblibimages.a
