@@ -1,0 +1,2 @@
+C:\PROGRA~1\MINGW-~1\X86_64~2.0-P\mingw64\bin\ar.exe qc liblibutils.a  CMakeFiles/libutils.dir/libutils/misc.cpp.obj CMakeFiles/libutils.dir/libutils/string_utils.cpp.obj CMakeFiles/libutils.dir/libutils/thread_mutex.cpp.obj
+C:\PROGRA~1\MINGW-~1\X86_64~2.0-P\mingw64\bin\ranlib.exe liblibutils.a

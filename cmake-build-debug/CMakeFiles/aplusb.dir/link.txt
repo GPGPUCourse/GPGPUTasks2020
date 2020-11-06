@@ -1,0 +1,3 @@
+C:\Users\Vergi\AppData\Local\JetBrains\Toolbox\apps\CLion\ch-0\202.7660.37\bin\cmake\win\bin\cmake.exe -E rm -f CMakeFiles\aplusb.dir/objects.a
+C:\PROGRA~1\MINGW-~1\X86_64~2.0-P\mingw64\bin\ar.exe cr CMakeFiles\aplusb.dir/objects.a @CMakeFiles\aplusb.dir\objects1.rsp
+C:\PROGRA~1\MINGW-~1\X86_64~2.0-P\mingw64\bin\G__~1.EXE  -fopenmp -g    -Wl,--whole-archive CMakeFiles\aplusb.dir/objects.a -Wl,--no-whole-archive  -o aplusb.exe -Wl,--out-implib,libaplusb.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\aplusb.dir\linklibs.rsp

@@ -1,0 +1,46 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../libs/clew/CL/cl.h
+OpenCL/cl_platform.h
+-
+CL/cl_platform.h
+-
+
+../libs/clew/CL/cl_platform.h
+AvailabilityMacros.h
+-
+stdint.h
+-
+stddef.h
+-
+altivec.h
+-
+intrin.h
+-
+xmmintrin.h
+-
+intrin.h
+-
+emmintrin.h
+-
+mmintrin.h
+-
+intrin.h
+-
+immintrin.h
+-
+
+C:/Users/Vergi/CLionProjects/GPGPUTasks2020/libs/clew/libclew/ocl_init.cpp
+CL/cl.h
+-
+windows.h
+-
+dlfcn.h
+-
+

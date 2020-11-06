@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6"/>
+	<Project>
+		<Option title="libimages"/>
+		<Option makefile_is_custom="1"/>
+		<Option compiler="gcc"/>
+		<Option virtualFolders="CMake Files\;CMake Files\libs\;CMake Files\libs\clew\;CMake Files\libs\gpu\;CMake Files\libs\images\;CMake Files\libs\utils\;"/>
+		<Build>
+			<Target title="all">
+				<Option working_dir="C:/Users/Vergi/CLionProjects/GPGPUTasks2020/cmake-build-debug/libs/images"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="C:/PROGRA~1/MINGW-~1/X86_64~2.0-P/mingw64/bin/mingw32-make.exe -f &quot;C:/Users/Vergi/CLionProjects/GPGPUTasks2020/cmake-build-debug/libs/images/Makefile&quot;  VERBOSE=1 all"/>
+					<CompileFile command="C:/PROGRA~1/MINGW-~1/X86_64~2.0-P/mingw64/bin/mingw32-make.exe -f &quot;C:/Users/Vergi/CLionProjects/GPGPUTasks2020/cmake-build-debug/libs/images/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="C:/PROGRA~1/MINGW-~1/X86_64~2.0-P/mingw64/bin/mingw32-make.exe -f &quot;C:/Users/Vergi/CLionProjects/GPGPUTasks2020/cmake-build-debug/libs/images/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="C:/PROGRA~1/MINGW-~1/X86_64~2.0-P/mingw64/bin/mingw32-make.exe -f &quot;C:/Users/Vergi/CLionProjects/GPGPUTasks2020/cmake-build-debug/libs/images/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="libimages">
+				<Option output="C:/Users/Vergi/CLionProjects/GPGPUTasks2020/cmake-build-debug/libs/images/liblibimages.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="C:/Users/Vergi/CLionProjects/GPGPUTasks2020/cmake-build-debug/libs/images"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="C:/Users/Vergi/CLionProjects/GPGPUTasks2020/libs/images"/>
+					<Add directory="C:/Program Files/mingw-w64/x86_64-7.3.0-posix-seh-rt_v5-rev0/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/7.3.0/include/c++"/>
+					<Add directory="C:/Program Files/mingw-w64/x86_64-7.3.0-posix-seh-rt_v5-rev0/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/7.3.0/include/c++/x86_64-w64-mingw32"/>
+					<Add directory="C:/Program Files/mingw-w64/x86_64-7.3.0-posix-seh-rt_v5-rev0/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/7.3.0/include/c++/backward"/>
+					<Add directory="C:/Program Files/mingw-w64/x86_64-7.3.0-posix-seh-rt_v5-rev0/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/7.3.0/include"/>
+					<Add directory="C:/Program Files/mingw-w64/x86_64-7.3.0-posix-seh-rt_v5-rev0/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/7.3.0/include-fixed"/>
+					<Add directory="C:/Program Files/mingw-w64/x86_64-7.3.0-posix-seh-rt_v5-rev0/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/7.3.0/../../../../x86_64-w64-mingw32/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="C:/PROGRA~1/MINGW-~1/X86_64~2.0-P/mingw64/bin/mingw32-make.exe -f &quot;C:/Users/Vergi/CLionProjects/GPGPUTasks2020/cmake-build-debug/libs/images/Makefile&quot;  VERBOSE=1 libimages"/>
+					<CompileFile command="C:/PROGRA~1/MINGW-~1/X86_64~2.0-P/mingw64/bin/mingw32-make.exe -f &quot;C:/Users/Vergi/CLionProjects/GPGPUTasks2020/cmake-build-debug/libs/images/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="C:/PROGRA~1/MINGW-~1/X86_64~2.0-P/mingw64/bin/mingw32-make.exe -f &quot;C:/Users/Vergi/CLionProjects/GPGPUTasks2020/cmake-build-debug/libs/images/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="C:/PROGRA~1/MINGW-~1/X86_64~2.0-P/mingw64/bin/mingw32-make.exe -f &quot;C:/Users/Vergi/CLionProjects/GPGPUTasks2020/cmake-build-debug/libs/images/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="libimages/fast">
+				<Option output="C:/Users/Vergi/CLionProjects/GPGPUTasks2020/cmake-build-debug/libs/images/liblibimages.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="C:/Users/Vergi/CLionProjects/GPGPUTasks2020/cmake-build-debug/libs/images"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="C:/Users/Vergi/CLionProjects/GPGPUTasks2020/libs/images"/>
+					<Add directory="C:/Program Files/mingw-w64/x86_64-7.3.0-posix-seh-rt_v5-rev0/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/7.3.0/include/c++"/>
+					<Add directory="C:/Program Files/mingw-w64/x86_64-7.3.0-posix-seh-rt_v5-rev0/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/7.3.0/include/c++/x86_64-w64-mingw32"/>
+					<Add directory="C:/Program Files/mingw-w64/x86_64-7.3.0-posix-seh-rt_v5-rev0/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/7.3.0/include/c++/backward"/>
+					<Add directory="C:/Program Files/mingw-w64/x86_64-7.3.0-posix-seh-rt_v5-rev0/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/7.3.0/include"/>
+					<Add directory="C:/Program Files/mingw-w64/x86_64-7.3.0-posix-seh-rt_v5-rev0/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/7.3.0/include-fixed"/>
+					<Add directory="C:/Program Files/mingw-w64/x86_64-7.3.0-posix-seh-rt_v5-rev0/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/7.3.0/../../../../x86_64-w64-mingw32/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="C:/PROGRA~1/MINGW-~1/X86_64~2.0-P/mingw64/bin/mingw32-make.exe -f &quot;C:/Users/Vergi/CLionProjects/GPGPUTasks2020/cmake-build-debug/libs/images/Makefile&quot;  VERBOSE=1 libimages/fast"/>
+					<CompileFile command="C:/PROGRA~1/MINGW-~1/X86_64~2.0-P/mingw64/bin/mingw32-make.exe -f &quot;C:/Users/Vergi/CLionProjects/GPGPUTasks2020/cmake-build-debug/libs/images/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="C:/PROGRA~1/MINGW-~1/X86_64~2.0-P/mingw64/bin/mingw32-make.exe -f &quot;C:/Users/Vergi/CLionProjects/GPGPUTasks2020/cmake-build-debug/libs/images/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="C:/PROGRA~1/MINGW-~1/X86_64~2.0-P/mingw64/bin/mingw32-make.exe -f &quot;C:/Users/Vergi/CLionProjects/GPGPUTasks2020/cmake-build-debug/libs/images/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+		</Build>
+		<Unit filename="C:/Users/Vergi/CLionProjects/GPGPUTasks2020/libs/images/libimages/images.cpp">
+			<Option target="libimages"/>
+		</Unit>
+		<Unit filename="C:/Users/Vergi/CLionProjects/GPGPUTasks2020/libs/images/libimages/images.h">
+			<Option target="libimages"/>
+		</Unit>
+		<Unit filename="C:/Users/Vergi/CLionProjects/GPGPUTasks2020/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+		<Unit filename="C:/Users/Vergi/CLionProjects/GPGPUTasks2020/libs/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\libs\"/>
+		</Unit>
+		<Unit filename="C:/Users/Vergi/CLionProjects/GPGPUTasks2020/libs/clew/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\libs\clew\"/>
+		</Unit>
+		<Unit filename="C:/Users/Vergi/CLionProjects/GPGPUTasks2020/libs/gpu/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\libs\gpu\"/>
+		</Unit>
+		<Unit filename="C:/Users/Vergi/CLionProjects/GPGPUTasks2020/libs/images/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\libs\images\"/>
+		</Unit>
+		<Unit filename="C:/Users/Vergi/CLionProjects/GPGPUTasks2020/libs/utils/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\libs\utils\"/>
+		</Unit>
+	</Project>
+</CodeBlocks_project_file>

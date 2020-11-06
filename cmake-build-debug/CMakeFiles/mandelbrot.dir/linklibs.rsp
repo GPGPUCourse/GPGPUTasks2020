@@ -1,0 +1,1 @@
+ libs/clew/liblibclew.a libs/gpu/liblibgpu.a libs/images/liblibimages.a libs/utils/liblibutils.a libs/gpu/liblibgpu.a libs/utils/liblibutils.a libs/clew/liblibclew.a -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32 

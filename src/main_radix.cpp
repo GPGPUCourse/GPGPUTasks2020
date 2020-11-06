@@ -32,7 +32,7 @@ int main(int argc, char **argv)
     context.init(device.device_id_opencl);
     context.activate();
 
-    int benchmarkingIters = 10;
+    int benchmarkingIters = 1;
     unsigned int n = 32 * 1024 * 1024;
     std::vector<unsigned int> as(n, 0);
     FastRandom r(n);
@@ -52,7 +52,7 @@ int main(int argc, char **argv)
         std::cout << "CPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
         std::cout << "CPU: " << (n/1000/1000) / t.lapAvg() << " millions/s" << std::endl;
     }
-/*
+
     gpu::gpu_mem_32u as_gpu;
     as_gpu.resizeN(n);
 
@@ -82,6 +82,6 @@ int main(int argc, char **argv)
     for (int i = 0; i < n; ++i) {
         EXPECT_THE_SAME(as[i], cpu_sorted[i], "GPU results should be equal to CPU results!");
     }
-*/
+
     return 0;
 }
