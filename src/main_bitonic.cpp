@@ -33,9 +33,8 @@ int main(int argc, char **argv)
     context.init(device.device_id_opencl);
     context.activate();
 
-    int benchmarkingIters = 1;
+    int benchmarkingIters = 10;
     unsigned int n = 32 * 1024 * 1024;
-    //unsigned int n = 1024 * 32;
     std::vector<float> as(n, 0);
     FastRandom r(n);
     for (unsigned int i = 0; i < n; ++i) {
@@ -57,10 +56,6 @@ int main(int argc, char **argv)
 
     gpu::gpu_mem_32f as_gpu;
     as_gpu.resizeN(n);
-
-    /*for (int i = 0; i < 10; ++i) {
-        std::cout << as[i] << '\n';
-    }*/
 
     {
         ocl::Kernel bitonic(bitonic_kernel, bitonic_kernel_length, "bitonic");
@@ -93,10 +88,6 @@ int main(int argc, char **argv)
     }
 
     // Проверяем корректность результатов
-
-    for (int i = 0; i < 50; ++i) {
-        std::cout << std::setprecision(10) << cpu_sorted[i] << ' ' << as[i] << '\n';
-    }
 
     for (int i = 0; i < n; ++i) {
         EXPECT_THE_SAME(as[i], cpu_sorted[i], "GPU results should be equal to CPU results!");

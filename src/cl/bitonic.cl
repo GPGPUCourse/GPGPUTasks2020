@@ -6,7 +6,6 @@
 
 #define GROUP_SIZE 256
 
-
 bool compare(float a, float b, bool mode) {
     return (mode) ? a > b : a < b;
 }
@@ -51,6 +50,7 @@ __kernel void bitonic(__global float* as, unsigned int size, unsigned int chunk_
 
     if (size <= GROUP_SIZE) {
         local_as[local_id] = as[global_id];
+        barrier(CLK_LOCAL_MEM_FENCE);
 
         if (size == GROUP_SIZE) {
             local_sort(local_as, size, chunk_size);
