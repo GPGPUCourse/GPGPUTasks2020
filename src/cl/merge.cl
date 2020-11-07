@@ -28,7 +28,7 @@ __kernel void merge(__global float *input, __global float *output, int size) {
 
   /** trying to bound our indices inside a-b square */
   if (d_id >= size) {
-    start = d_id - size - 1;
+    start = d_id - size;
     stop = stop - start;
   }
 
@@ -41,11 +41,8 @@ __kernel void merge(__global float *input, __global float *output, int size) {
                get_val(input, size, b, d_id - middle);
 
     /** true == 1, false = 0 in our lectures */
-    if (val) {
-      start = middle;
-    } else {
-      stop = middle;
-    }
+    start = val ? middle : start;
+    stop = val ? stop : middle;
 
     middle = (start + stop) / 2;
     if (start == stop - 1)
