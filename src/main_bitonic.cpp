@@ -59,8 +59,14 @@ int main(int argc, char **argv)
     as_gpu.resizeN(n);
 
     {
-        ocl::Kernel bitonic(bitonic_kernel, bitonic_kernel_length, "bitonic");
-        bitonic.compile();
+        ocl::Kernel bitonicGlobal(bitonic_kernel, bitonic_kernel_length, "bitonicGlobal");
+        bitonicGlobal.compile();
+
+        ocl::Kernel bitonicLocal(bitonic_kernel, bitonic_kernel_length, "bitonicLocal");
+        bitonicLocal.compile();
+
+        ocl::Kernel bitonicStep(bitonic_kernel, bitonic_kernel_length, "bitonicStep");
+        bitonicStep.compile();
 
         timer t;
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
@@ -68,26 +74,38 @@ int main(int argc, char **argv)
 
             t.restart(); // Запускаем секундомер после прогрузки данных чтобы замерять время работы кернела, а не трансфер данных
 
-            unsigned int workGroupSize = 16;
+            unsigned int workGroupSize = 32;
             unsigned int global_work_size = (n + workGroupSize - 1) / workGroupSize * workGroupSize;
+
+            bitonicLocal.exec(gpu::WorkSize(workGroupSize, global_work_size),
+                              as_gpu);
+
             int runs = log2(global_work_size);
 
-            for(int run = 1; run <= runs; run++) {
+            for(int run = log2(workGroupSize); run <= runs; run++) {
 
                 int blockSize = 1 << run;
 
                 int step = blockSize >> 1;
                 int subBlockSize = blockSize;
 
-                while(step > 0) {
+                while (step > 0 && subBlockSize >= workGroupSize) {
 
-                    bitonic.exec(gpu::WorkSize(workGroupSize, global_work_size),
-                                 as_gpu,
-                                 run,
-                                 step,
-                                 subBlockSize);
+                    bitonicGlobal.exec(gpu::WorkSize(workGroupSize, global_work_size),
+                                       as_gpu,
+                                       run,
+                                       step,
+                                       subBlockSize);
                     step >>= 1;
                     subBlockSize >>= 1;
+                }
+
+                if(subBlockSize > 0 && subBlockSize < workGroupSize) {
+
+                    bitonicStep.exec(gpu::WorkSize(workGroupSize, global_work_size),
+                                     as_gpu,
+                                     blockSize,
+                                     subBlockSize);
                 }
             }
 
