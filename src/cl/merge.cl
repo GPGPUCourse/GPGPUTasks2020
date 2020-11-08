@@ -1,6 +1,6 @@
 #ifdef USE_LOCAL
-#   define from temp
-#   define to temp
+#   define from temp[current]
+#   define to temp[current ^ 1]
 #   define i iLocal
 #else
 #   define from as
@@ -13,31 +13,49 @@ __kernel void merge(const __global float *as, __global float *as_next, const uns
     const unsigned int iLocal = get_local_id(0);
     
 #ifdef USE_LOCAL
-    __local float temp[LOCAL_SIZE];
+    __local float temp[2][LOCAL_SIZE];
 
-    temp[iLocal] = as[iGlobal];
+    temp[0][iLocal] = as[iGlobal];
     barrier(CLK_LOCAL_MEM_FENCE);
 
     step = 1;
+    unsigned int current = 0;
 
 while (step < LOCAL_SIZE) {
 #endif
 
-    const unsigned int offset = i & (~((step << 1) - 1));
+    const unsigned int offset[2] = {
+         i & (~((step << 1) - 1)),
+        (i & (~((step << 1) - 1))) + step
+    };
     
-    // TODO
+    bool isFirstHalf = i < offset[1];
+    const float iValue = from[i];
+
+    int l = offset[isFirstHalf] - 1;
+    int r = offset[isFirstHalf] + step;
+
+    while (l + 1 < r) {
+        const int m = (l + r) >> 1;
+        const float mValue = from[m];
+
+        if (mValue < iValue || (!isFirstHalf && mValue == iValue)) {
+            l = m;
+        } else {
+            r = m;
+        }
+    }
+
+    const int iNext = offset[0] + (i - offset[!isFirstHalf]) + (r - offset[isFirstHalf]);
+    to[iNext] = iValue;
 
 #ifdef USE_LOCAL
     barrier(CLK_LOCAL_MEM_FENCE);
-#endif
-    to[i] = foundElement;
-
-#ifdef USE_LOCAL
-    barrier(CLK_LOCAL_MEM_FENCE);
     
+    current ^= 1;
     step <<= 1;
 } // while
 
-    as_next[iGlobal] = temp[iLocal];
+    as_next[iGlobal] = temp[current][iLocal];
 #endif
 }

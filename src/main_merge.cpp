@@ -13,17 +13,17 @@
 
 
 template<typename T>
-void raiseFail(const T &a, const T &b, std::string message, std::string filename, int line)
+void raiseFail(const size_t i, const T &a, const T &b, std::string message, std::string filename, int line)
 {
     if (a != b) {
-        std::cerr << message << " But " << a << " != " << b << ", " << filename << ":" << line << std::endl;
+        std::cerr << message << " But " << a << " != " << b << " at " << i << ", " << filename << ":" << line << std::endl;
         throw std::runtime_error(message);
     }
 }
 
-#define EXPECT_THE_SAME(a, b, message) raiseFail(a, b, message, __FILE__, __LINE__)
+#define EXPECT_THE_SAME(i, a, b, message) raiseFail(i, a, b, message, __FILE__, __LINE__)
 
-#define DEBUG 8
+// #define DEBUG 8
 
 int main(int argc, char **argv)
 {
@@ -129,7 +129,7 @@ int main(int argc, char **argv)
     }
     // Проверяем корректность результатов
     for (int i = 0; i < n; ++i) {
-        EXPECT_THE_SAME(as[i], cpu_sorted[i], "GPU results should be equal to CPU results!");
+        EXPECT_THE_SAME(i, as[i], cpu_sorted[i], "GPU results should be equal to CPU results!");
     }
 
     return 0;
