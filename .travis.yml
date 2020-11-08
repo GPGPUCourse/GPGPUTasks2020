@@ -17,5 +17,5 @@ script:
   - cd build
   - cmake -DCMAKE_BUILD_TYPE=RELWITHDEBINFO ..
   - make -j4
-  - cd ..
-  - ./build/aplusb
+  - ./aplusb
+  - ./merge

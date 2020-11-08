@@ -2,25 +2,19 @@
 
 [Остальные задания](https://github.com/GPGPUCourse/GPGPUTasks2020/).
 
-# Задание 1. A+B.
+# Задание 6. Merge sort
 
-[![Build Status](https://travis-ci.com/GPGPUCourse/GPGPUTasks2020.svg?branch=task01)](https://travis-ci.com/GPGPUCourse/GPGPUTasks2020)
-
-Задание
-=======
+[![Build Status](https://travis-ci.com/GPGPUCourse/GPGPUTasks2020.svg?branch=task06)](https://travis-ci.com/GPGPUCourse/GPGPUTasks2020)
 
 0. Сделать fork проекта
-1. Прочитать все комментарии подряд и выполнить все **TODO** в файле ``src/main.cpp`` и ``src/cl/aplusb.cl``
-2. Отправить **Pull-request** с названием```Task01 <Имя> <Фамилия> <Аффиляция>``` (указав вывод программы при исполнении на вашем компьютере - в тройных кавычках для сохранения форматирования)
+1. Выполнить задание
+2. Отправить **Pull-request** с названием ```Task06 <Имя> <Фамилия> <Аффиляция>``` (указав вывод программы при исполнении на вашем компьютере - в тройных кавычках для сохранения форматирования)
 
-**Дедлайн**: начало лекции 21 сентября.
+**Дедлайн**: 2 ноября 20:00.
 
-Коментарии
-==========
+Задание
+=========
 
-Т.к. в ``TODO 6`` исходники кернела считываются по относительному пути ``src/cl/aplusb.cl``, то нужно правильно настроить working directory. Например в случае CLion нужно открыть ``Edit configurations`` -> и указать ``Working directory: .../НАЗВАНИЕПАПКИПРОЕКТА`` (см. [подробнее](https://github.com/GPGPUCourse/GPGPUTasks2020/tree/task01/.figures))
+Реализуйте merge sort для вещественных чисел.
 
- - [Задание 0](https://github.com/GPGPUCourse/GPGPUTasks2020/tree/task00): Вводное.
- - [Задание 1](https://github.com/GPGPUCourse/GPGPUTasks2020/tree/task01): A+B.
- - Задание 2: Теоретическое задание: параллелизуемость/code divergence/memory coalesced access (сдача через сайт CSC).
- - [Задание 3](https://github.com/GPGPUCourse/GPGPUTasks2020/tree/task03): Фрактал Мандельброта. Сумма чисел. Максимальный по сумме префикс.
+Файлы: ```src/main_merge.cpp``` и ```src/cl/merge.cl```
