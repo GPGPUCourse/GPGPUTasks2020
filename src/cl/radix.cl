@@ -6,7 +6,7 @@
 // The Parallel Radix Sort Algorithm - Phase 1: Setup and Tabulation
 
 #define WORK_GROUP_SIZE 128
-#define DATA_PER_WORKITEM 64
+#define DATA_PER_WORKITEM 32
 #define L 4
 #define MASK (1 << 4) - 1
 

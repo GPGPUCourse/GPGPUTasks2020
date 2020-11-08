@@ -7,11 +7,9 @@
 // Этот файл будет сгенерирован автоматически в момент сборки - см. convertIntoHeader в CMakeLists.txt:18
 #include "cl/radix_cl.h"
 
-#include <numeric>
 #include <vector>
 #include <iostream>
 #include <stdexcept>
-
 
 template<typename T>
 void raiseFail(const T &a, const T &b, std::string message, std::string filename, int line)
@@ -26,7 +24,7 @@ void raiseFail(const T &a, const T &b, std::string message, std::string filename
 
 // Обозначения частично взяты из https://developer.nvidia.com/gpugems/gpugems3/part-v-physics-simulation/chapter-32-broad-phase-collision-detection-cuda
 #define WORK_GROUP_SIZE 128
-#define DATA_PER_WORKITEM 64 // количество элементов, которое обрабатывает один work_item
+#define DATA_PER_WORKITEM 32 // количество элементов, которое обрабатывает один work_item
 #define L 4  // количество одновременно сортируемых бит
 #define PREFIXSUM_WG_NUM 16 // Количество рабочих групп для посчета префиксных сумм
 
