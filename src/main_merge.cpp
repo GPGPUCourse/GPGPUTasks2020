@@ -30,19 +30,22 @@ void merge_sort(gpu::gpu_mem_32f& gpu_data, ocl::Kernel& merge_kernel) {
     gpu::gpu_mem_32f buffer_mem;
     buffer_mem.resizeN(gpu_data.number());
     int data_size = 2;
+    merge_kernel.exec(gpu::WorkSize(workGroupSize, global_work_size),
+                      gpu_data, buffer_mem, (unsigned int)gpu_data.number(), data_size);
+    data_size = workGroupSize * 2;
     int count = 0;
     while (data_size <= gpu_data.number()) {
         ++count;
         if (count % 2 == 1) {
             merge_kernel.exec(gpu::WorkSize(workGroupSize, global_work_size),
-                              gpu_data, buffer_mem, (unsigned int)gpu_data.number(), data_size);
+                              buffer_mem, gpu_data, (unsigned int)gpu_data.number(), data_size);
         } else {
             merge_kernel.exec(gpu::WorkSize(workGroupSize, global_work_size),
-                              buffer_mem, gpu_data, (unsigned int)gpu_data.number(), data_size);
+                              gpu_data, buffer_mem, (unsigned int)gpu_data.number(), data_size);
         }
         data_size *= 2;
     }
-    if (count % 2 == 1) {
+    if (count % 2 != 1) {
         buffer_mem.copyToN(gpu_data, gpu_data.number());
     }
 }
