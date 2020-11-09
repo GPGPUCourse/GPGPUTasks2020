@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
     context.activate();
 
     int benchmarkingIters = 1;
-    unsigned int n = /* 32 */ 1024 * 1024;
+    unsigned int n = 32 * 1024 * 1024;
     std::vector<float> as(n, 0);
     FastRandom r(n);
     for (unsigned int i = 0; i < n; ++i) {
@@ -55,10 +55,10 @@ int main(int argc, char **argv) {
     as_gpu.resizeN(n);
     as_gpu_out.resizeN(n);
     {
-        std::cout << "start compiling" << std::endl;
+//        std::cout << "start compiling" << std::endl;
         ocl::Kernel merge(merge_kernel, merge_kernel_length, "merge");
         merge.compile();
-        std::cout << "end compiling" << std::endl;
+//        std::cout << "end compiling" << std::endl;
         timer t;
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
             as_gpu.writeN(as.data(), n);
