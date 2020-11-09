@@ -1,7 +1,7 @@
 __kernel void mergePath(__global float* as,
                         __global float* bs,
                         __global int* pathPoints,
-                        int aSize,
+                        unsigned int aSize,
                         int step) {
 
     int frameSize = aSize;
@@ -58,7 +58,6 @@ __kernel void mergePath(__global float* as,
             aTop = aI - 1;
         }
 
-        //midf = ceil(((float)(aBottom - aTop)) / (float)(2.0));
         midf = ceil(((float)(aBottom - aTop)) / 2.0);
         mid = (int)midf;
 
@@ -76,13 +75,13 @@ __kernel void mergeBlock(__global float* as,
                          __global float* bs,
                          __global float* merged,
                          __global int* pathPoints,
-                         int aSize) {
+                         unsigned int aSize) {
 
     int aIndex = pathPoints[get_global_id(0) * 2];
     int bIndex = pathPoints[get_global_id(0) * 2 + 1];
 
-    int nextAIndex = min(pathPoints[get_global_id(0) * 2 + 2], aSize);
-    int nextBIndex = min(pathPoints[get_global_id(0) * 2 + 3], aSize);
+    int nextAIndex = min(pathPoints[get_global_id(0) * 2 + 2], (int)aSize);
+    int nextBIndex = min(pathPoints[get_global_id(0) * 2 + 3], (int)aSize);
 
     while((aIndex <= nextAIndex || bIndex <= nextBIndex)) {
 
