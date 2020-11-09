@@ -24,5 +24,5 @@ add_executable(aplusb src/main_aplusb.cpp src/cl/aplusb_cl.h)
 target_link_libraries(aplusb libclew libgpu libutils)
 
 convertIntoHeader(src/cl/merge.cl src/cl/merge_cl.h merge_kernel)
-add_executable(merge src/main_merge.cpp src/cl/merge_cl.h)
+add_executable(merge src/main_merge.cpp src/cl/merge_cl.h src/cl/merge.cl)
 target_link_libraries(merge libclew libgpu libutils)
