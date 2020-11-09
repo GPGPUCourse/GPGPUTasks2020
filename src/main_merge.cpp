@@ -59,6 +59,7 @@ int main(int argc, char **argv)
             cpu_sorted = as;
             std::sort(cpu_sorted.begin(), cpu_sorted.end());
             t.nextLap();
+            //std::cout << "cpu iter = " << iter << "\n";
         }
         std::cout << "CPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
         std::cout << "CPU: " << (n/1000/1000) / t.lapAvg() << " millions/s" << std::endl;
@@ -79,7 +80,7 @@ int main(int argc, char **argv)
             unsigned int global_work_size = (n + workGroupSize - 1) / workGroupSize * workGroupSize;
             int k = 1;
             while (k * 2 <= n) {
-                std::cout << "k = " << k << ", n = " << n << "\n";
+                //std::cout << "k = " << k << ", n = " << n << "\n";
                 merge.exec(gpu::WorkSize(workGroupSize, global_work_size), as_gpu, res_gpu, n, k);
                 /*
                 std::vector<float> res(n);
@@ -100,7 +101,7 @@ int main(int argc, char **argv)
         std::cout << "GPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
         std::cout << "GPU: " << (n/1000/1000) / t.lapAvg() << " millions/s" << std::endl;
         as_gpu.readN(as.data(), n);
-        std::cout << "readN+\n";
+        //std::cout << "readN+\n";
     }
 
     /*
