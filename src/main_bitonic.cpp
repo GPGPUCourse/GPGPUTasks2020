@@ -52,24 +52,42 @@ int main(int argc, char **argv)
         std::cout << "CPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
         std::cout << "CPU: " << (n/1000/1000) / t.lapAvg() << " millions/s" << std::endl;
     }
-/*
+
     gpu::gpu_mem_32f as_gpu;
     as_gpu.resizeN(n);
 
     {
-        ocl::Kernel bitonic(bitonic_kernel, bitonic_kernel_length, "bitonic");
-        bitonic.compile();
+        ocl::Kernel bitonic_global(bitonic_kernel, bitonic_kernel_length, "bitonic_global");
+        bitonic_global.compile();
 
+        ocl::Kernel bitonic_using_local_mem(bitonic_kernel, bitonic_kernel_length, "bitonic_using_local_mem");
+        bitonic_using_local_mem.compile();
         timer t;
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
             as_gpu.writeN(as.data(), n);
 
             t.restart(); // Запускаем секундомер после прогрузки данных чтобы замерять время работы кернела, а не трансфер данных
 
+
             unsigned int workGroupSize = 128;
-            unsigned int global_work_size = (n + workGroupSize - 1) / workGroupSize * workGroupSize;
-            bitonic.exec(gpu::WorkSize(workGroupSize, global_work_size),
-                         as_gpu, n);
+            unsigned int global_work_size = (n / 2 + workGroupSize - 1) / workGroupSize * workGroupSize;
+
+            // максимальный размер блока в одном "синем" блоке
+            for (int i = 1; i < n; i *= 2) {
+                // размер "красного" блока в синем блоке. Эти размеры уменьшаются, и если размер одного блока влезает в локальную память, т
+                // то весь этот цикл досчитываем через нее
+                for (int local_size = i; local_size > 0; local_size /= 2) {
+                    if (local_size <= workGroupSize) {
+                        bitonic_using_local_mem.exec(gpu::WorkSize(workGroupSize, global_work_size), as_gpu, n,
+                                                     i, local_size);
+                        break;
+                    }
+                    else {
+                        bitonic_global.exec(gpu::WorkSize(workGroupSize, global_work_size), as_gpu, n,
+                                            i, local_size);
+                    }
+                }
+            }
             t.nextLap();
         }
         std::cout << "GPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
@@ -82,6 +100,6 @@ int main(int argc, char **argv)
     for (int i = 0; i < n; ++i) {
         EXPECT_THE_SAME(as[i], cpu_sorted[i], "GPU results should be equal to CPU results!");
     }
-*/
+
     return 0;
 }
