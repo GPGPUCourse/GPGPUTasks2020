@@ -37,8 +37,8 @@ __kernel void mergePath(__global float* as,
     int bTop = bIndex + (bTopIndex * step);
     int bBottom = (bBottomIndex * step) + bIndex;
 
-    int midf = float(aBottom - aTop) / 2.0;
-    int mid = (aBottom - aTop) / 2;
+    float midf = ceil(float(aBottom - aTop) / float(2.0));
+    int mid = int(midf);
 
     while(mid > 0) {
 
@@ -58,7 +58,7 @@ __kernel void mergePath(__global float* as,
             aTop = aI - 1;
         }
 
-        midf = ceil(float(aBottom - aTop) / 2.0);
+        midf = ceil(float(aBottom - aTop) / float(2.0));
         mid = int(midf);
 
         if(mid == 1) {
