@@ -52,30 +52,35 @@ int main(int argc, char **argv)
         std::cout << "CPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
         std::cout << "CPU: " << (n/1000/1000) / t.lapAvg() << " millions/s" << std::endl;
     }
-/*
-    gpu::gpu_mem_32f as_gpu;
-    as_gpu.resizeN(n);
+
+    gpu::gpu_mem_32f as_gpu[2];
+    as_gpu[0].resizeN(n);
+    as_gpu[1].resizeN(n);
     {
         ocl::Kernel merge(merge_kernel, merge_kernel_length, "merge");
         merge.compile();
         timer t;
+        int k;
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
-            as_gpu.writeN(as.data(), n);
+            k = 0;
+            as_gpu[0].writeN(as.data(), n);
             t.restart(); // Запускаем секундомер после прогрузки данных чтобы замерять время работы кернела, а не трансфер данных
             unsigned int workGroupSize = 128;
             unsigned int global_work_size = (n + workGroupSize - 1) / workGroupSize * workGroupSize;
-            merge.exec(gpu::WorkSize(workGroupSize, global_work_size),
-                       as_gpu, n);
+            for (int m = 1; m <= n / 2; m *= 2) {
+                merge.exec(gpu::WorkSize(workGroupSize, global_work_size), as_gpu[k], as_gpu[(k + 1) % 2], m, n);
+                k = (k + 1) % 2;
+            }
             t.nextLap();
         }
         std::cout << "GPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
         std::cout << "GPU: " << (n/1000/1000) / t.lapAvg() << " millions/s" << std::endl;
-        as_gpu.readN(as.data(), n);
+        as_gpu[k].readN(as.data(), n);
     }
     // Проверяем корректность результатов
     for (int i = 0; i < n; ++i) {
         EXPECT_THE_SAME(as[i], cpu_sorted[i], "GPU results should be equal to CPU results!");
     }
-*/
+
     return 0;
 }
