@@ -56,16 +56,16 @@ int main(int argc, char **argv)
     {
         unsigned int WG_SIZE=256;
         unsigned int WG_COUNT=n/WG_SIZE;
-		
+        
         gpu::gpu_mem_32f tmp[2];
         tmp[0].resizeN(n);
         tmp[1].resizeN(n);
-		
+        
         gpu::gpu_mem_32u bi[4];
         bi[0].resizeN(WG_COUNT+1);
         bi[1].resizeN(WG_COUNT+1);
-		bi[2].resizeN(WG_COUNT+1);
-		bi[3].resizeN(WG_COUNT+1);
+        bi[2].resizeN(WG_COUNT+1);
+        bi[3].resizeN(WG_COUNT+1);
         
         ocl::Kernel merge_init(merge_kernel, merge_kernel_length, "merge_init");
         ocl::Kernel merge_local(merge_kernel, merge_kernel_length, "merge_local");
@@ -84,7 +84,7 @@ int main(int argc, char **argv)
                 merge_local.exec(gpu::WorkSize(WG_SIZE, n), tmp[i%2], tmp[1-i%2], n, step);
             for(int step=WG_SIZE;step<n;step*=2,i++)
             {
-				merge_init.exec(gpu::WorkSize(WG_SIZE, WG_COUNT), tmp[i%2], bi[0], bi[1], bi[2], bi[3], n, step);
+                merge_init.exec(gpu::WorkSize(WG_SIZE, WG_COUNT), tmp[i%2], bi[0], bi[1], bi[2], bi[3], n, step);
                 merge_global.exec(gpu::WorkSize(WG_SIZE, n), tmp[i%2], tmp[1-i%2], bi[0], bi[1], bi[2], bi[3], n, step);
             }
             t.nextLap();
