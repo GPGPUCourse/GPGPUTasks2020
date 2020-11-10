@@ -52,43 +52,20 @@ int main(int argc, char **argv)
         std::cout << "CPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
         std::cout << "CPU: " << (n/1000/1000) / t.lapAvg() << " millions/s" << std::endl;
     }
-
+    
     {
         unsigned int WG_SIZE=256;
-        gpu::gpu_mem_32f tmp[2];
-        tmp[0].resizeN(n);
-        tmp[1].resizeN(n);
-        ocl::Kernel merge(merge_kernel, merge_kernel_length, "merge");
-        merge.compile();
-        timer t;
-        int i=0;
-        for (int iter = 0; iter < benchmarkingIters; ++iter) {
-            tmp[0].writeN(as.data(), n);
-            t.restart(); // Запускаем секундомер после прогрузки данных чтобы замерять время работы кернела, а не трансфер данных
-            i=0;
-            for(int step=1;step<n;step*=2,i++)
-                merge.exec(gpu::WorkSize(WG_SIZE, n), tmp[i%2], tmp[1-i%2], n, step);
-            t.nextLap();
-        }
-        std::cout << "GPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
-        std::cout << "GPU: " << (n/1000/1000) / t.lapAvg() << " millions/s" << std::endl;
-        tmp[i%2].readN(as.data(), n);
-    }
-    // Проверяем корректность результатов
-    for (int i = 0; i < n; ++i) {
-        EXPECT_THE_SAME(as[i], cpu_sorted[i], "GPU results should be equal to CPU results!");
-    }
-    
-    /*{
-        unsigned int WG_SIZE=256;
         unsigned int WG_COUNT=n/WG_SIZE;
+		
         gpu::gpu_mem_32f tmp[2];
         tmp[0].resizeN(n);
         tmp[1].resizeN(n);
-        gpu::gpu_mem_32u block_inds_x;
-        gpu::gpu_mem_32u block_inds_y;
-        block_inds_x.resizeN(WG_COUNT);
-        block_inds_y.resizeN(WG_COUNT);
+		
+        gpu::gpu_mem_32u bi[4];
+        bi[0].resizeN(WG_COUNT+1);
+        bi[1].resizeN(WG_COUNT+1);
+		bi[2].resizeN(WG_COUNT+1);
+		bi[3].resizeN(WG_COUNT+1);
         
         ocl::Kernel merge_init(merge_kernel, merge_kernel_length, "merge_init");
         ocl::Kernel merge_local(merge_kernel, merge_kernel_length, "merge_local");
@@ -107,8 +84,8 @@ int main(int argc, char **argv)
                 merge_local.exec(gpu::WorkSize(WG_SIZE, n), tmp[i%2], tmp[1-i%2], n, step);
             for(int step=WG_SIZE;step<n;step*=2,i++)
             {
-                merge_init.exec(gpu::WorkSize(WG_SIZE, WG_COUNT), tmp[i%2], block_inds_x, block_inds_y, WG_COUNT, step);
-                merge_global.exec(gpu::WorkSize(WG_SIZE, n), tmp[i%2], tmp[1-i%2], block_inds_x, block_inds_y, n, step);
+				merge_init.exec(gpu::WorkSize(WG_SIZE, WG_COUNT), tmp[i%2], bi[0], bi[1], bi[2], bi[3], n, step);
+                merge_global.exec(gpu::WorkSize(WG_SIZE, n), tmp[i%2], tmp[1-i%2], bi[0], bi[1], bi[2], bi[3], n, step);
             }
             t.nextLap();
         }
@@ -117,14 +94,9 @@ int main(int argc, char **argv)
         tmp[i%2].readN(as.data(), n);
     }
     // Проверяем корректность результатов
-    //for (int i = 0; i < n; ++i)
-    //    std::cout<<as[i]<<"\n";
-    //std::cout<<"----------------------------------------------\n";
-    //for (int i = 0; i < n; ++i)
-    //    std::cout<<cpu_sorted[i]<<"\n";
     for (int i = 0; i < n; ++i) {
         EXPECT_THE_SAME(as[i], cpu_sorted[i], "GPU results should be equal to CPU results!");
-    }*/
+    }
 
     return 0;
 }
