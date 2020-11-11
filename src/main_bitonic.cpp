@@ -33,13 +33,13 @@ int main(int argc, char **argv)
     context.activate();
 
     int benchmarkingIters = 10;
-    unsigned int n = 32 * 256 * 256;
+    unsigned int n = 32 * 1024 * 1024;
     std::vector<float> as(n, 0);
     FastRandom r(n);
     for (unsigned int i = 0; i < n; ++i) {
         as[i] = r.nextf();
     }
-    std::cout << "Data generated for n=" << n << "!" << std::endl;
+//    std::cout << "Data generated for n=" << n << "!" << std::endl;
 //    for (int i = 0; i < n; i++) {
 //        std::cout << as[i] << "\t";
 //    }
@@ -61,10 +61,11 @@ int main(int argc, char **argv)
     as_gpu.resizeN(n);
 
     {
+        ocl::Kernel bitonic_local(bitonic_kernel, bitonic_kernel_length, "bitonic_local");
+        bitonic_local.compile();
+
         ocl::Kernel bitonic_global(bitonic_kernel, bitonic_kernel_length, "bitonic_global");
         bitonic_global.compile();
-        ocl::Kernel bitonic(bitonic_kernel, bitonic_kernel_length, "bitonic");
-        bitonic.compile();
 
 
         timer t;
@@ -76,25 +77,18 @@ int main(int argc, char **argv)
             unsigned int workGroupSize = 256;
             unsigned int global_work_size = (n + workGroupSize - 1) / workGroupSize * workGroupSize;
 
-//            bitonic.exec(gpu::WorkSize(workGroupSize, global_work_size), as_gpu, 0, 0);
-//            as_gpu.readN(as.data(), n);
-//            for (int i = 0; i < n; i++) {
-//                std::cout << as[i] << "\t";
-//            }
-//            std::cout << std::endl;
-
 
             for (unsigned int step = 2; step <= n; step *= 2) {
-                for (unsigned int size = step; size >= 2; size /= 2) {
-                    bitonic.exec(gpu::WorkSize(workGroupSize, global_work_size), as_gpu, size, step);
-                    as_gpu.readN(as.data(), n);
+                for (unsigned int size = step; size > workGroupSize; size /= 2) {
+                    bitonic_global.exec(gpu::WorkSize(workGroupSize, global_work_size), as_gpu, size, step);
+//                    as_gpu.readN(as.data(), n);
 //                    for (int i = 0; i < n; i++) {
 //                        std::cout << as[i] << "\t";
 //                    }
 //                    std::cout << std::endl;
                 }
-
-//                bitonic.exec(gpu::WorkSize(workGroupSize, global_work_size), as_gpu, step, step);
+                unsigned int size = (step < workGroupSize) ? step : workGroupSize;
+                bitonic_local.exec(gpu::WorkSize(workGroupSize, global_work_size), as_gpu, size, step);
 //                as_gpu.readN(as.data(), n);
 //                for (int i = 0; i < n; i++) {
 //                    std::cout << as[i] << "\t";
