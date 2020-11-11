@@ -52,9 +52,6 @@ void l_sort(__local float* as, unsigned int n, unsigned int step) {
 //
 //    __local float l_as[WORKGROUPSIZE];
 //
-//    if (n > WORKGROUPSIZE) {
-//        return 1;
-//    }
 //    l_as[l_id] = as[id];
 //    barrier(CLK_LOCAL_MEM_FENCE);
 //
@@ -64,26 +61,24 @@ void l_sort(__local float* as, unsigned int n, unsigned int step) {
 //    as[id] = l_as[l_id];
 //}
 
-//__kernel void bitonic(__global float* as, unsigned int n, unsigned int step)
-//{
-//    unsigned int id = get_global_id(0);
-//    unsigned int l_id = get_local_id(0);
-//
-//    if (n > WORKGROUPSIZE) {
-//        g_sort(as, n, step);
-//    }
-//    else {
-//        __local float l_as[WORKGROUPSIZE];
-//
-//        l_as[l_id] = as[id];
-//        barrier(CLK_LOCAL_MEM_FENCE);
-//
-//        for (int i = 2; i <= WORKGROUPSIZE; i *= 2) {
-//            l_sort(l_as, i, step);
-//        }
-//        as[id] = l_as[l_id];
-//    }
-//}
+__kernel void bitonic(__global float* as, unsigned int n, unsigned int step)
+{
+    unsigned int id = get_global_id(0);
+    unsigned int l_id = get_local_id(0);
+
+    __local float l_as[WORKGROUPSIZE];
+
+    if (n > WORKGROUPSIZE) {
+        g_sort(as, n, step);
+    }
+    else {
+        l_as[l_id] = as[id];
+        barrier(CLK_LOCAL_MEM_FENCE);
+
+        l_sort(l_as, n, step);
+        as[id] = l_as[l_id];
+    }
+}
 
 __kernel void bitonic_global(__global float* as, unsigned int n, unsigned int step)
 {

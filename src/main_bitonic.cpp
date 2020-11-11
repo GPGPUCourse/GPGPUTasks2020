@@ -63,6 +63,9 @@ int main(int argc, char **argv)
     {
         ocl::Kernel bitonic_global(bitonic_kernel, bitonic_kernel_length, "bitonic_global");
         bitonic_global.compile();
+        ocl::Kernel bitonic(bitonic_kernel, bitonic_kernel_length, "bitonic");
+        bitonic.compile();
+
 
         timer t;
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
@@ -83,7 +86,7 @@ int main(int argc, char **argv)
 
             for (unsigned int step = 2; step <= n; step *= 2) {
                 for (unsigned int size = step; size >= 2; size /= 2) {
-                    bitonic_global.exec(gpu::WorkSize(workGroupSize, global_work_size), as_gpu, size, step);
+                    bitonic.exec(gpu::WorkSize(workGroupSize, global_work_size), as_gpu, size, step);
                     as_gpu.readN(as.data(), n);
 //                    for (int i = 0; i < n; i++) {
 //                        std::cout << as[i] << "\t";
