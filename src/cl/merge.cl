@@ -33,10 +33,10 @@ __kernel void merge(__global const float* as, __global float* as_sorted, int n, 
     int as_id;
     if (l + 1 + shift_after_half == half_size && diag >= half_size)
         as_id = b_start + shift_after_half;
-    else if (l == -1 && diag > half_size)
+    else if (l == -1 && diag >= half_size)
         as_id = a_start + shift_after_half;
     else
-        as_id = (b_start + shift_before_half - l < a_start + shift_after_half + l + 1) ? b_start + shift_before_half - l : a_start + shift_after_half + l + 1;
+        as_id = (as[b_start + shift_before_half - l] < as[a_start + shift_after_half + l + 1]) ? b_start + shift_before_half - l : a_start + shift_after_half + l + 1;
 
     as_sorted[id] = as[as_id];
 }
