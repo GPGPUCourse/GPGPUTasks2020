@@ -16,7 +16,7 @@ template<typename T>
 void raiseFail(const T &a, const T &b, std::string message, std::string filename, int line)
 {
     if (a != b) {
-        std::cerr << message << " But " << a << " != " << b << ", " << filename << ":" << line << std::endl;
+		std::cerr << message << " But " << a << " != " << b << ", " << filename << ":" << line << std::endl;
         throw std::runtime_error(message);
     }
 }
@@ -61,7 +61,7 @@ int main(int argc, char **argv)
         tmp[0].resizeN(n);
         tmp[1].resizeN(n);
         
-        gpu::gpu_mem_32u bi[4];
+        gpu::gpu_mem_32i bi[4];
         bi[0].resizeN(WG_COUNT+1);
         bi[1].resizeN(WG_COUNT+1);
         bi[2].resizeN(WG_COUNT+1);
