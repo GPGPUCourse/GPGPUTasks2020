@@ -52,9 +52,9 @@ __kernel void merge_init(__global const float* xs,
                          cint n, cint step)
 {
     cint global_id=get_global_id(0);
-	cint wg_count=n/WG_SIZE;
-	if(global_id>=wg_count)return;
-	
+    cint wg_count=n/WG_SIZE;
+    if(global_id>=wg_count)return;
+    
     if(global_id==0)
     {
         bi_y_l[0]=0;
