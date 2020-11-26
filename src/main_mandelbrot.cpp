@@ -126,8 +126,8 @@ int main(int argc, char **argv)
         gpu::gpu_mem_32f mandelbrotGPU;
         mandelbrotGPU.resizeN(width * height);
 
-        int workGroupSizeX = 32;
-        int workGroupSizeY = 32;
+        int workGroupSizeX = 16;
+        int workGroupSizeY = 16;
         int globalSizeX = (width + workGroupSizeX - 1) / workGroupSizeX * workGroupSizeX;
         int globalSizeY = (height + workGroupSizeY - 1) / workGroupSizeY * workGroupSizeY;
 
