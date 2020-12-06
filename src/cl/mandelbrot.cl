@@ -11,10 +11,6 @@ __kernel void mandelbrot(__global float *results,
                          const float fromX, const float fromY,
                          const float sizeX, const float sizeY,
                          const int iters, const int smoothing) {
-    // TODO если хочется избавиться от зернистости и дрожания при интерактивном погружении, добавьте anti-aliasing:
-    // грубо говоря, при anti-aliasing уровня N вам нужно рассчитать не одно значение в центре пикселя, а N*N значений
-    // в узлах регулярной решетки внутри пикселя, а затем посчитав среднее значение результатов - взять его за результат для всего пикселя
-    // это увеличит число операций в N*N раз, поэтому при рассчетах гигаплопс антиальясинг должен быть выключен
     const unsigned int i = get_global_id(0);
     const unsigned int j = get_global_id(1);
     if (i >= width || j >= height) {
