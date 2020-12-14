@@ -33,7 +33,7 @@ int main(int argc, char **argv)
     context.activate();
 
     int benchmarkingIters = 10;
-    unsigned int n = 32*1024*1024;
+    unsigned int n = 32 * 1024 * 1024;
     std::vector<float> as(n, 0);
     FastRandom r(n);
     for (unsigned int i = 0; i < n; ++i) {
@@ -52,11 +52,14 @@ int main(int argc, char **argv)
         std::cout << "CPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
         std::cout << "CPU: " << (n/1000/1000) / t.lapAvg() << " millions/s" << std::endl;
     }
-/*
+
     gpu::gpu_mem_32f as_gpu;
+    gpu::gpu_mem_32f aux;
+
+    aux.resizeN(n);
     as_gpu.resizeN(n);
     {
-        ocl::Kernel merge(merge_kernel, merge_kernel_length, "merge");
+        ocl::Kernel merge(merge_kernel, merge_kernel_length, "mergeSort");
         merge.compile();
         timer t;
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
@@ -64,18 +67,27 @@ int main(int argc, char **argv)
             t.restart(); // Запускаем секундомер после прогрузки данных, чтобы замерять время работы кернела, а не трансфера данных
             unsigned int workGroupSize = 128;
             unsigned int global_work_size = (n + workGroupSize - 1) / workGroupSize * workGroupSize;
-            merge.exec(gpu::WorkSize(workGroupSize, global_work_size),
-                       as_gpu, n);
+            
+            for(int msize = 1; msize < n;msize *= 2){
+                merge.exec(gpu::WorkSize(workGroupSize, global_work_size), as_gpu, aux, n, msize);
+
+                as_gpu.swap(aux);
+            }
             t.nextLap();
         }
         std::cout << "GPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
         std::cout << "GPU: " << (n/1000/1000) / t.lapAvg() << " millions/s" << std::endl;
         as_gpu.readN(as.data(), n);
     }
+
+    // for(int i = 0;i < n;++i){
+    //     std::cout<<" "<<as[i];
+    // }
+    // std::cout<<std::endl;
     // Проверяем корректность результатов
     for (int i = 0; i < n; ++i) {
         EXPECT_THE_SAME(as[i], cpu_sorted[i], "GPU results should be equal to CPU results!");
     }
-*/
+
     return 0;
 }
